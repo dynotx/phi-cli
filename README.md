@@ -39,17 +39,11 @@ Requires Python ≥ 3.11.
 ---
 
 ## Authentication
-
+Navigate to https://design.dynotx.com and complete the login flow.
 Create an API key at **Settings → API keys** in the dyno web app, then export it:
 
 ```bash
 export DYNO_API_KEY=ak_...
-```
-
-Optionally override the API base URL (defaults to the hosted API):
-
-```bash
-export DYNO_API_BASE_URL=https://api.dynotx.com
 ```
 
 Verify your connection:
@@ -65,13 +59,13 @@ phi login
 ### Single-sequence / single-structure jobs
 
 ```bash
-# Structure prediction (ESMFold)
+# Structure prediction (default:ESMFold)
 phi folding --fasta sequences.fasta
 
-# Complex structure prediction (AlphaFold2 multimer)
+# Complex structure prediction (default: AlphaFold2 multimer)
 phi complex_folding --fasta binder_target.fasta
 
-# Sequence design via inverse folding (ProteinMPNN)
+# Sequence design via inverse folding (default: ProteinMPNN)
 phi inverse_folding --pdb design.pdb --num-sequences 20
 ```
 

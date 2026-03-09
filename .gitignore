@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+.venv/
+venv/
+env/
+
+# Type checking
+.mypy_cache/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Phi runtime state
+.phi-state.json
+results/
+research.md
+
+# Credentials
+service-account.json
+*.json.key
+.env
+.env.*
+!.env.example
+
+# Modal
+.modal/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store

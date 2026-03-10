@@ -4,14 +4,14 @@ import json
 from rich.panel import Panel
 from rich.text import Text
 
-from phi.api import _api_key, _request
-from phi.config import _base_url
+from phi.api import _request
+from phi.config import _base_url, _require_api_key
 from phi.display import _C_BLUE, _C_SAND, _die, console
 from phi.types import PhiApiError
 
 
 def cmd_login(args: argparse.Namespace) -> None:
-    key = _api_key()
+    key = _require_api_key()
     masked = key[:8] + "…" if len(key) > 8 else key
     base = _base_url()
 

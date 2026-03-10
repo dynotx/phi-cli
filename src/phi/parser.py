@@ -4,14 +4,23 @@ from phi._version import __version__
 from phi.config import _FILTER_PRESETS, POLL_INTERVAL
 
 _CLI_EPILOG = """\
-Quick try (single sequence / structure):
+Fetch and prepare target structures:
+  phi fetch --pdb 4ZQK --chain A --residues 56-290 --out target.pdb
+  phi fetch --uniprot Q9NZQ7 --trim-low-confidence 70 --upload
+
+Design (backbone generation):
+  phi design      --target-pdb target.pdb --hotspots A45,A67 --num-designs 50
+  phi design      --length 80 --num-designs 20
+  phi boltzgen    --yaml design.yaml --protocol protein-anything --num-designs 10
+
+Validation (fold + score):
   phi esmfold     --fasta sequences.fasta
   phi alphafold   --fasta complex.fasta
   phi proteinmpnn --pdb design.pdb  --num-sequences 20
   phi esm2        --fasta sequences.fasta
   phi boltz       --fasta complex.fasta
 
-Batch workflow (100-50,000 files):
+Batch filter pipeline (100-50,000 designs):
   phi upload --dir ./designs/ --file-type pdb
   phi filter --dataset-id <id> --preset default --wait
   phi download   --out ./results
@@ -60,6 +69,161 @@ def _add_job_args(p: argparse.ArgumentParser) -> None:
     )
     p.add_argument("--out", metavar="DIR", help="Download results to DIR when done")
     p.add_argument("--json", action="store_true", help="Output raw JSON")
+
+
+def _add_fetch_args(p: argparse.ArgumentParser) -> None:
+    src = p.add_argument_group("source (pick one)")
+    src.add_argument("--pdb", metavar="ID", help="RCSB PDB ID (e.g., 4ZQK)")
+    src.add_argument(
+        "--uniprot",
+        metavar="ID",
+        help="UniProt accession — downloads from AlphaFold DB (e.g., Q9NZQ7)",
+    )
+
+    crop = p.add_argument_group("cropping (optional)")
+    crop.add_argument("--chain", metavar="CHAIN", help="Extract a single chain (e.g., A)")
+    crop.add_argument(
+        "--residues",
+        metavar="START-END",
+        help="Keep only residues in this range (e.g., 56-290)",
+    )
+    crop.add_argument(
+        "--trim-low-confidence",
+        type=float,
+        metavar="PLDDT",
+        dest="trim_low_confidence",
+        help=(
+            "Remove residues with pLDDT below this threshold. "
+            "AlphaFold DB structures store pLDDT in the B-factor column. "
+            "Typical value: 70."
+        ),
+    )
+
+    out = p.add_argument_group("output")
+    out.add_argument(
+        "--out",
+        metavar="FILE",
+        help="Output PDB file path (default: {ID}[_{chain}].pdb in current directory)",
+    )
+    out.add_argument(
+        "--upload",
+        action="store_true",
+        help=(
+            "Upload to Dyno cloud storage after saving — creates a dataset and "
+            "prints the GCS URI for use with 'phi design --target-pdb-gcs'"
+        ),
+    )
+    out.add_argument(
+        "--name",
+        metavar="NAME",
+        help="Dataset name label when using --upload (default: PDB/UniProt ID)",
+    )
+
+
+def _add_rfdiffusion3_args(p: argparse.ArgumentParser) -> None:
+    mode = p.add_argument_group("design mode (pick one)")
+    mode.add_argument("--length", type=int, metavar="N", help="Backbone length for de novo generation")
+    mode.add_argument("--target-pdb", metavar="FILE", help="Target PDB for binder design")
+    mode.add_argument(
+        "--target-pdb-gcs",
+        metavar="URI",
+        help="Cloud storage URI to target PDB (gs://…)",
+    )
+    mode.add_argument("--motif-pdb", metavar="FILE", help="Motif PDB for scaffolding")
+    mode.add_argument(
+        "--motif-pdb-gcs",
+        metavar="URI",
+        help="Cloud storage URI to motif PDB (gs://…)",
+    )
+
+    binder = p.add_argument_group("binder design options")
+    binder.add_argument("--target-chain", metavar="CHAIN", help="Target chain ID (e.g., A)")
+    binder.add_argument(
+        "--hotspots",
+        metavar="A45,A67",
+        help="Comma-separated hotspot residues for interface design (e.g., A45,A67,A89)",
+    )
+    binder.add_argument(
+        "--motif-residues",
+        metavar="10-20,45-55",
+        help="Comma-separated motif residue ranges (e.g., 10-20,45-55)",
+    )
+
+    gen = p.add_argument_group("generation parameters")
+    gen.add_argument("--num-designs", type=int, default=10, metavar="N", help="Designs to generate (default: 10)")
+    gen.add_argument(
+        "--steps",
+        type=int,
+        default=50,
+        metavar="N",
+        help="Diffusion inference steps — higher improves quality (default: 50)",
+    )
+    gen.add_argument("--contigs", metavar="STR", help="Contig specification string for advanced control")
+    gen.add_argument("--symmetry", metavar="C3", help="Symmetry specification (e.g., C3, D2, C5)")
+
+
+def _add_boltzgen_args(p: argparse.ArgumentParser) -> None:
+    inp = p.add_argument_group("input (pick one)")
+    inp.add_argument("--yaml", metavar="FILE", help="Local YAML design specification file")
+    inp.add_argument("--yaml-gcs", metavar="URI", help="Cloud storage URI to YAML file (gs://…)")
+    inp.add_argument(
+        "--structure-gcs",
+        metavar="URI",
+        help="Cloud storage URI to structure file referenced in the YAML (gs://…)",
+    )
+
+    gen = p.add_argument_group("generation parameters")
+    gen.add_argument(
+        "--protocol",
+        default="protein-anything",
+        choices=[
+            "protein-anything",
+            "peptide-anything",
+            "protein-small_molecule",
+            "antibody-anything",
+            "nanobody-anything",
+            "protein-redesign",
+        ],
+        metavar="PROTOCOL",
+        help=(
+            "Design protocol: protein-anything (default), peptide-anything, "
+            "protein-small_molecule, antibody-anything, nanobody-anything, protein-redesign"
+        ),
+    )
+    gen.add_argument(
+        "--num-designs",
+        type=int,
+        default=10,
+        metavar="N",
+        help="Intermediate designs to generate (default: 10; use 10,000–60,000 for production)",
+    )
+    gen.add_argument(
+        "--budget",
+        type=int,
+        metavar="N",
+        help="Final diversity-optimized design count (default: num_designs // 10)",
+    )
+    gen.add_argument(
+        "--boltzgen-steps",
+        metavar="STEPS",
+        dest="steps",
+        help="Specific pipeline steps, space-separated (e.g., 'design inverse_folding folding'). Omit to run full pipeline.",
+    )
+
+    inv = p.add_argument_group("inverse folding only")
+    inv.add_argument(
+        "--only-inverse-fold",
+        action="store_true",
+        dest="only_inverse_fold",
+        help="Run inverse folding on an existing structure YAML — skips backbone design",
+    )
+    inv.add_argument(
+        "--inverse-fold-num-sequences",
+        type=int,
+        metavar="N",
+        dest="inverse_fold_num_sequences",
+        help="Sequences per design when using --only-inverse-fold (default: 2)",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -242,6 +406,27 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-msa", action="store_true", help="Disable MSA (faster, lower accuracy)")
     _add_job_args(p)
 
+    p = sub.add_parser(
+        "rfdiffusion3",
+        aliases=["design"],
+        help="All-atom backbone generation: binder design, de novo, motif scaffolding (2–5 min/design)",
+    )
+    _add_rfdiffusion3_args(p)
+    _add_job_args(p)
+
+    p = sub.add_parser(
+        "boltzgen",
+        help="All-atom generative design from a YAML spec — proteins, peptides, small molecules (10–20 min)",
+    )
+    _add_boltzgen_args(p)
+    _add_job_args(p)
+
+    p = sub.add_parser(
+        "fetch",
+        help="Download a structure from RCSB PDB or AlphaFold DB, optionally crop, save locally",
+    )
+    _add_fetch_args(p)
+
     p = sub.add_parser("research", help="Biological research query with citations (2–5 min)")
     p.add_argument(
         "--question",
@@ -393,7 +578,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         metavar="F",
-        help="AlphaFold2 interface PAE upper-bound cutoff (default preset: 0.35)",
+        help="AlphaFold2 interface PAE upper-bound in Å (default preset: 10.85 Å = BindCraft 0.35 × 31)",
     )
     p.add_argument(
         "--ptm-threshold",
@@ -426,13 +611,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--msa-tool",
-        default="mmseqs2",
-        choices=["mmseqs2", "jackhmmer", "single_sequence"],
+        default="single_sequence",
+        choices=["single_sequence", "mmseqs2", "jackhmmer"],
         metavar="TOOL",
         help=(
-            "MSA algorithm for AF2 complex prediction: mmseqs2 (default), jackhmmer, or "
-            "single_sequence (skips MSA — ~4x faster, better-calibrated for novel designed "
-            "binders that have no natural sequence homologs). "
+            "MSA algorithm for AF2 complex prediction: single_sequence (default — skips MSA, "
+            "best-calibrated for novel designed binders with no natural homologs), "
+            "mmseqs2, or jackhmmer. "
             "Matches the --msa-tool option on 'phi alphafold'."
         ),
     )

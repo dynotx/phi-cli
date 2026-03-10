@@ -5,8 +5,17 @@ from phi.commands.auth import cmd_login
 from phi.commands.datasets import cmd_dataset, cmd_datasets, cmd_ingest_session, cmd_upload, cmd_use
 from phi.commands.filter import cmd_filter
 from phi.commands.jobs import cmd_cancel, cmd_download, cmd_jobs, cmd_logs, cmd_scores, cmd_status
-from phi.commands.models import cmd_alphafold, cmd_boltz, cmd_esm2, cmd_esmfold, cmd_proteinmpnn
+from phi.commands.models import (
+    cmd_alphafold,
+    cmd_boltz,
+    cmd_boltzgen,
+    cmd_esm2,
+    cmd_esmfold,
+    cmd_proteinmpnn,
+    cmd_rfdiffusion3,
+)
 from phi.commands.research import cmd_notes, cmd_research
+from phi.commands.structure import cmd_fetch
 from phi.config import _load_state
 from phi.display import _C_BLUE, _die, console
 from phi.parser import build_parser
@@ -26,6 +35,10 @@ COMMANDS = {
     "inverse_folding": cmd_proteinmpnn,
     "esm2": cmd_esm2,
     "boltz": cmd_boltz,
+    "rfdiffusion3": cmd_rfdiffusion3,
+    "design": cmd_rfdiffusion3,
+    "boltzgen": cmd_boltzgen,
+    "fetch": cmd_fetch,
     "research": cmd_research,
     "notes": cmd_notes,
     "status": cmd_status,

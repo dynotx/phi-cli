@@ -57,7 +57,6 @@ def _resolve_cached_id(
         )
         return str(cached)
     _die(missing_hint)
-    raise SystemExit(1)  # unreachable
 
 
 def _resolve_dataset_id(args: argparse.Namespace) -> str:
@@ -102,25 +101,38 @@ def _ssl_context() -> ssl.SSLContext:
     return ctx
 
 
-_FILTER_PRESETS: dict[str, dict[str, float]] = {
+_FILTER_PRESETS: dict[str, dict] = {
     "default": {
         "plddt_threshold": 0.80,
         "ptm_threshold": 0.55,
         "iptm_threshold": 0.50,
-        "ipae_threshold": 0.35,
+        # iPAE is reported in Å (AF2 scale 0–31.75 Å).
+        # Threshold derived from BindCraft normalized convention: ipAE_norm = ipAE_Å / 31
+        # 0.35 (BindCraft default) × 31 = 10.85 Å ≈ ~11 Å (standard RFdiffusion cutoff)
+        "ipae_threshold": 10.85,
         "rmsd_threshold": 3.5,
+        # Designed binders have no natural homologs — single_sequence avoids MSA artifacts.
+        "msa_tool": "single_sequence",
     },
     "relaxed": {
         "plddt_threshold": 0.80,
         "ptm_threshold": 0.45,
         "iptm_threshold": 0.50,
-        "ipae_threshold": 0.40,
+        # 0.40 (relaxed normalized) × 31 = 12.4 Å
+        "ipae_threshold": 12.4,
         "rmsd_threshold": 4.5,
+        "msa_tool": "single_sequence",
     },
 }
 
 
-def _api_key() -> str:
+_CACHED_API_KEY: str | None = None
+
+
+def _require_api_key() -> str:
+    global _CACHED_API_KEY
+    if _CACHED_API_KEY:
+        return _CACHED_API_KEY
     key = os.environ.get("DYNO_API_KEY")
     if not key:
         for candidate in [Path(".env"), Path.home() / ".dyno" / ".env"]:
@@ -138,4 +150,5 @@ def _api_key() -> str:
             "  2. Create an API key under 'API keys'\n"
             "  3. Run: export DYNO_API_KEY=your_key"
         )
+    _CACHED_API_KEY = key
     return key

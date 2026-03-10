@@ -3,6 +3,7 @@ import json
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
+from typing import cast
 
 from phi.api import _request
 from phi.config import _ssl_context
@@ -10,6 +11,7 @@ from phi.display import (
     _C_BLUE,
     _C_ROSE,
     _C_SAND,
+    _die,
     _fmt_size,
     _make_upload_progress,
     _print_download_result,
@@ -30,20 +32,23 @@ _DOWNLOAD_SUBDIR: dict[str, str] = {
 
 
 def _read_fasta(args: argparse.Namespace) -> str:
-    if hasattr(args, "fasta_str") and args.fasta_str:
+    if args.fasta_str:
         return str(args.fasta_str)
-    if hasattr(args, "fasta") and args.fasta:
+    if args.fasta:
         return Path(args.fasta).read_text()
-    from phi.display import _die
-
     _die("Provide --fasta FILE or --fasta-str '>name\\nSEQUENCE'")
-    raise SystemExit(1)  # unreachable
 
 
 def _fetch_url_to_file(url: str, dest: Path) -> None:
     req = urllib.request.Request(url, headers={"User-Agent": "phi-cli/1.0"}, method="GET")
     with urllib.request.urlopen(req, timeout=120, context=_ssl_context()) as resp:
         dest.write_bytes(resp.read())
+
+
+def _fetch_url_to_str(url: str) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": "phi-cli/1.0"}, method="GET")
+    with urllib.request.urlopen(req, timeout=120, context=_ssl_context()) as resp:
+        return cast(bytes, resp.read()).decode("utf-8")
 
 
 def _get_artifact_url(af: dict) -> str | None:
@@ -79,12 +84,7 @@ def _load_scores_csv(artifact_files: list[dict]) -> str | None:
         return None
 
     try:
-        import tempfile
-
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
-            tmp_path = Path(tmp.name)
-        _fetch_url_to_file(url, tmp_path)
-        return tmp_path.read_text()
+        return _fetch_url_to_str(url)
     except Exception as exc:
         err_console.print(f"  [dim]Could not fetch scores table: {exc}[/]")
         return None
@@ -193,6 +193,46 @@ def _write_manifest(out_dir: Path, data: object) -> None:
     console.print(f"  [dim]manifest → {manifest}[/]")
 
 
+def _download_artifact_files(artifact_files: list[dict], out: Path, out_dir: str, all_files: bool) -> None:
+    to_download, to_skip = _categorize_artifacts(artifact_files, all_files)
+    selected_types = {af.get("artifact_type") or "file" for af in to_download}
+    _print_artifact_summary(artifact_files, selected_types)
+
+    if not all_files and to_skip:
+        console.print(
+            f"  [dim]{len(to_skip)} file(s) skipped"
+            f" (msa/zip/scripts) — pass [bold]--all[/bold] to include[/]"
+        )
+
+    if not to_download:
+        console.print("  [dim]Nothing to download.[/]")
+    else:
+        downloaded, errors, counts_by_subdir = _download_artifacts(to_download, out)
+        _print_download_result(out_dir, downloaded, errors, counts_by_subdir)
+
+    _write_manifest(out, artifact_files)
+
+
+def _download_workflow_artifacts(workflow_artifacts: dict, out: Path) -> None:
+    console.print("\n[bold]Workflow artifacts:[/]")
+    for key, val in workflow_artifacts.items():
+        console.print(f"  [{_C_BLUE}]{key}[/]: {val}")
+    _write_manifest(out, workflow_artifacts)
+
+
+def _download_output_files(output_files: list[dict], out: Path) -> None:
+    console.print(f"\n[bold]Output files[/] ({len(output_files)}) — stored in cloud:")
+    for f in output_files:
+        name = f.get("name", "")
+        val = f.get("value", "")
+        if isinstance(val, list):
+            for v in val:
+                console.print(f"  [{_C_BLUE}]{v}[/]")
+        else:
+            console.print(f"  [{_C_BLUE}]{name}[/]: {val}")
+    _write_manifest(out, output_files)
+
+
 def _download_job(status: dict, out_dir: str, all_files: bool = False) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -203,42 +243,11 @@ def _download_job(status: dict, out_dir: str, all_files: bool = False) -> None:
     output_files: list[dict] = status.get("output_files") or []
 
     if artifact_files:
-        to_download, to_skip = _categorize_artifacts(artifact_files, all_files)
-        selected_types = {af.get("artifact_type") or "file" for af in to_download}
-        _print_artifact_summary(artifact_files, selected_types)
-
-        if not all_files and to_skip:
-            console.print(
-                f"  [dim]{len(to_skip)} file(s) skipped"
-                f" (msa/zip/scripts) — pass [bold]--all[/bold] to include[/]"
-            )
-
-        if not to_download:
-            console.print("  [dim]Nothing to download.[/]")
-        else:
-            downloaded, errors, counts_by_subdir = _download_artifacts(to_download, out)
-            _print_download_result(out_dir, downloaded, errors, counts_by_subdir)
-
-        _write_manifest(out, artifact_files)
-
+        _download_artifact_files(artifact_files, out, out_dir, all_files)
     elif workflow_artifacts:
-        console.print("\n[bold]Workflow artifacts:[/]")
-        for key, val in workflow_artifacts.items():
-            console.print(f"  [{_C_BLUE}]{key}[/]: {val}")
-        _write_manifest(out, workflow_artifacts)
-
+        _download_workflow_artifacts(workflow_artifacts, out)
     elif output_files:
-        console.print(f"\n[bold]Output files[/] ({len(output_files)}) — stored in cloud:")
-        for f in output_files:
-            name = f.get("name", "")
-            val = f.get("value", "")
-            if isinstance(val, list):
-                for v in val:
-                    console.print(f"  [{_C_BLUE}]{v}[/]")
-            else:
-                console.print(f"  [{_C_BLUE}]{name}[/]: {val}")
-        _write_manifest(out, output_files)
-
+        _download_output_files(output_files, out)
     else:
         console.print(f"  [dim]No output files found for job {status.get('job_id')}[/]")
         console.print(f"  [dim]run_id: {status.get('run_id')}[/]")

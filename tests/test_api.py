@@ -21,7 +21,7 @@ def _mock_response(data: dict, status: int = 200) -> MagicMock:
     return mock
 
 
-@patch("phi.api._api_key", return_value="test-key")
+@patch("phi.api._require_api_key", return_value="test-key")
 @patch("phi.api._base_url", return_value="http://localhost:8000")
 @patch("phi.api._ssl_context")
 @patch("urllib.request.urlopen")
@@ -39,7 +39,7 @@ def test_request_sends_auth_header(
     assert req.get_header("X-api-key") == "test-key"
 
 
-@patch("phi.api._api_key", return_value="test-key")
+@patch("phi.api._require_api_key", return_value="test-key")
 @patch("phi.api._base_url", return_value="http://localhost:8000")
 @patch("phi.api._ssl_context")
 @patch("urllib.request.urlopen")
@@ -61,7 +61,7 @@ def test_request_raises_on_4xx(
         _request("GET", "/test")
 
 
-@patch("phi.api._api_key", return_value="test-key")
+@patch("phi.api._require_api_key", return_value="test-key")
 @patch("phi.api._base_url", return_value="http://localhost:8000")
 @patch("phi.api._ssl_context")
 @patch("urllib.request.urlopen")

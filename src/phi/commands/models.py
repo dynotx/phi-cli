@@ -89,3 +89,77 @@ def cmd_boltz(args: argparse.Namespace) -> None:
     if not getattr(args, "dataset_id", None):
         params["fasta_str"] = _read_fasta(args)
     _run_model_job("boltz", params, args)
+
+
+def cmd_rfdiffusion3(args: argparse.Namespace) -> None:
+    params: dict = {
+        "num_designs": args.num_designs,
+        "inference_steps": args.steps,
+    }
+
+    if args.length is not None:
+        params["length"] = args.length
+
+    if args.target_pdb:
+        params["target_pdb"] = Path(args.target_pdb).read_text()
+    elif args.target_pdb_gcs:
+        params["target_pdb_gcs_uri"] = args.target_pdb_gcs
+
+    if args.target_chain:
+        params["target_chain"] = args.target_chain
+
+    if args.hotspots:
+        params["hotspots"] = [h.strip() for h in args.hotspots.split(",")]
+
+    if args.motif_pdb:
+        params["motif_pdb"] = Path(args.motif_pdb).read_text()
+    elif args.motif_pdb_gcs:
+        params["motif_pdb_gcs_uri"] = args.motif_pdb_gcs
+
+    if args.motif_residues:
+        params["motif_residues"] = [r.strip() for r in args.motif_residues.split(",")]
+
+    if args.contigs:
+        params["contigs"] = args.contigs
+
+    if args.symmetry:
+        params["symmetry"] = args.symmetry
+
+    _run_model_job("rfdiffusion3", params, args)
+
+
+def cmd_boltzgen(args: argparse.Namespace) -> None:
+    params: dict = {
+        "protocol": args.protocol,
+        "num_designs": args.num_designs,
+    }
+
+    extra: list[str] = []
+
+    if args.only_inverse_fold:
+        params["steps"] = "inverse_folding"
+        extra.append("--only_inverse_fold")
+        if args.inverse_fold_num_sequences:
+            extra += ["--inverse_fold_num_sequences", str(args.inverse_fold_num_sequences)]
+    elif args.steps:
+        params["steps"] = args.steps
+
+    if args.budget:
+        extra += ["--budget", str(args.budget)]
+
+    if extra:
+        params["extra_args"] = " ".join(extra)
+
+    if args.yaml_gcs:
+        params["yaml_gcs_uri"] = args.yaml_gcs
+    elif args.yaml:
+        yaml_path = Path(args.yaml)
+        params["yaml_str"] = yaml_path.read_text()
+        params["yaml_name"] = yaml_path.name
+    else:
+        _die("Provide --yaml FILE or --yaml-gcs GCS_URI")
+
+    if args.structure_gcs:
+        params["structure_file_gcs_uri"] = args.structure_gcs
+
+    _run_model_job("boltzgen", params, args)

@@ -39,11 +39,17 @@ Requires Python ≥ 3.11.
 ---
 
 ## Authentication
-Navigate to https://design.dynotx.com and complete the login flow.
+
 Create an API key at **Settings → API keys** in the dyno web app, then export it:
 
 ```bash
 export DYNO_API_KEY=ak_...
+```
+
+Optionally override the API base URL (defaults to the hosted API):
+
+```bash
+export DYNO_API_BASE_URL=https://api.dynotx.com
 ```
 
 Verify your connection:
@@ -59,13 +65,13 @@ phi login
 ### Single-sequence / single-structure jobs
 
 ```bash
-# Structure prediction (default:ESMFold)
+# Structure prediction (ESMFold)
 phi folding --fasta sequences.fasta
 
-# Complex structure prediction (default: AlphaFold2 multimer)
+# Complex structure prediction (AlphaFold2 multimer)
 phi complex_folding --fasta binder_target.fasta
 
-# Sequence design via inverse folding (default: ProteinMPNN)
+# Sequence design via inverse folding (ProteinMPNN)
 phi inverse_folding --pdb design.pdb --num-sequences 20
 ```
 
@@ -104,9 +110,12 @@ Active: dataset [d7c3a1b2-...] · job [cb4553f5-...]
 |---|---|---|
 | `phi login` | — | Verify API key and print identity |
 | `phi upload` | — | Upload PDB/CIF files or a directory |
+| `phi fetch` | — | Download a structure from RCSB PDB or AlphaFold DB, crop, and optionally upload |
 | `phi datasets` | — | List datasets |
 | `phi dataset` | — | Show dataset details |
 | `phi use <dataset_id>` | — | Set active dataset (cached to `.phi-state.json`) |
+| `phi design` | `rfdiffusion3` | Backbone diffusion — generate binder scaffolds (RFDiffusion3) |
+| `phi boltzgen` | — | All-atom binder design (BoltzGen); supports `--only-inverse-fold` |
 | `phi folding` | `esmfold` | Single-sequence structure prediction (ESMFold) |
 | `phi complex_folding` | `alphafold` | Multi-chain complex prediction (AlphaFold2 multimer) |
 | `phi inverse_folding` | `proteinmpnn` | Sequence design via inverse folding (ProteinMPNN) |
@@ -117,7 +126,7 @@ Active: dataset [d7c3a1b2-...] · job [cb4553f5-...]
 | `phi jobs` | — | List recent jobs |
 | `phi logs <job_id>` | — | Stream job logs |
 | `phi cancel <job_id>` | — | Cancel a running job |
-| `phi scores` | — | Display scores CSV for a completed filter job |
+| `phi scores` | — | Display scores table for a completed filter job |
 | `phi download` | — | Download job artifacts (structures, scores, raw JSONs) |
 | `phi research` | — | Run a research query against the platform |
 | `phi notes` | — | Manage dataset research notes |
@@ -143,11 +152,11 @@ design against configurable thresholds.
 
 | Metric | `default` | `relaxed` | Description |
 |---|---|---|---|
-| pLDDT | ≥ 0.80 | ≥ 0.70 | ESMFold per-residue confidence |
+| pLDDT | ≥ 0.80 | ≥ 0.80 | ESMFold per-residue confidence |
 | pTM | ≥ 0.55 | ≥ 0.45 | Global TM-score proxy (ESMFold) |
-| ipTM | ≥ 0.50 | ≥ 0.40 | Interface pTM (AF2 multimer) |
-| iPAE | ≤ 0.35 Å | ≤ 0.50 Å | Interface PAE (AF2 multimer) |
-| RMSD | ≤ 3.5 Å | ≤ 5.0 Å | Backbone RMSD vs. reference |
+| ipTM | ≥ 0.50 | ≥ 0.50 | Interface pTM (AF2 multimer) |
+| iPAE | ≤ 10.85 Å | ≤ 12.4 Å | AF2 interface PAE in Å (BindCraft equiv: 0.35×31 / 0.40×31) |
+| RMSD | ≤ 3.5 Å | ≤ 4.5 Å | Backbone RMSD vs. reference |
 
 Override any threshold with an explicit flag:
 
@@ -184,8 +193,8 @@ pip install "dyno-phi[biomodals]"
 modal token new          # authenticate with Modal
 ```
 
-You also need a `cloudsql-credentials` Modal secret containing
-`GOOGLE_APPLICATION_CREDENTIALS_JSON` (your GCS service account JSON).
+Each biomodal requires platform credentials configured as Modal secrets.
+Contact your Dyno administrator for the required secret names and values.
 
 ### Deploying
 

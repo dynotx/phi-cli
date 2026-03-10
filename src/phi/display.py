@@ -39,6 +39,35 @@ _STATUS_ICON = {
     "cancelled": "⊘",
 }
 
+_DESIGN_NAME_MAX_LEN = 20
+
+_SCORE_DISPLAY_COLS = [
+    ("design_name", "Design", 16, False),
+    ("esmfold_plddt", "pLDDT", 6, False),
+    ("af2_ptm", "pTM", 6, False),
+    ("af2_iptm", "ipTM", 6, False),
+    ("af2_ipae", "iPAE", 6, False),
+    ("rmsd", "RMSD", 7, True),
+]
+
+# Shown in a secondary table only when per-model sidecar data is present.
+# M1/M2 = model_1_seed_000 / model_2_seed_000; primary iPAE uses rank_001
+# (best across all seeds), so values may differ slightly.
+_PER_MODEL_COLS = [
+    ("af2_model1_iptm", "M1 ipTM", 7, False),
+    ("af2_model1_ipae", "M1 iPAE", 7, False),
+    ("af2_model2_iptm", "M2 ipTM", 7, False),
+    ("af2_model2_ipae", "M2 iPAE", 7, False),
+]
+
+_THRESHOLD_LABELS = [
+    ("plddt_threshold", "pLDDT≥{}"),
+    ("ptm_threshold", "pTM≥{}"),
+    ("iptm_threshold", "ipTM≥{}"),
+    ("ipae_threshold", "iPAE≤{}Å"),
+    ("rmsd_threshold", "RMSD≤{}Å"),
+]
+
 
 def _die(msg: str) -> NoReturn:
     err_console.print(f"[bold {_C_ROSE}]error:[/] {msg}")
@@ -60,6 +89,134 @@ def _duration_str(started_at: str, completed_at: str) -> str:
         return f"{int((t1 - t0).total_seconds())}s"
     except Exception:
         return ""
+
+
+def _truncate_name(val: str) -> str:
+    return (val[:_DESIGN_NAME_MAX_LEN] + "…") if len(val) > _DESIGN_NAME_MAX_LEN else val
+
+
+def _threshold_summary(thresholds: dict) -> str:
+    parts = [fmt.format(thresholds[key]) for key, fmt in _THRESHOLD_LABELS if key in thresholds]
+    return ("  [dim]" + "  ·  ".join(parts) + "[/]") if parts else ""
+
+
+def _is_cell_failing(label: str, fail_reasons: str) -> bool:
+    label_short = label.lower().replace(" ", "")
+    return any(label_short in r.lower() for r in fail_reasons.split(";"))
+
+
+def _format_score_cell(field: str, val: str, is_ang: bool, is_failing: bool = False) -> Text:
+    if val in ("", "None", "none"):
+        return Text("—", style="dim")
+    if field == "design_name":
+        return Text(_truncate_name(val), style="bold")
+    try:
+        fval = float(val)
+        formatted = f"{fval:.3f}" + (" Å" if is_ang else "")
+        return Text(formatted, style=_C_ROSE if is_failing else "")
+    except (ValueError, TypeError):
+        return Text(val, style="dim")
+
+
+def _has_per_model_data(rows: list[dict]) -> bool:
+    return any(
+        row.get(field, "").strip() not in ("", "None", "none")
+        for row in rows
+        for field, *_ in _PER_MODEL_COLS
+        if field in row
+    )
+
+
+def _make_scores_table(rows: list[dict], thresholds: dict | None) -> Table:
+    title = "[dim]Per-design scores[/]"
+    if thresholds:
+        title += _threshold_summary(thresholds)
+
+    table = Table(
+        box=rich_box.SIMPLE,
+        show_header=True,
+        header_style=f"bold {_C_SAND}",
+        show_edge=False,
+        padding=(0, 1),
+        title=title,
+        title_justify="left",
+    )
+
+    available_cols = [c for c in _SCORE_DISPLAY_COLS if c[0] in rows[0]]
+    for _field, label, width, _is_ang in available_cols:
+        table.add_column(label, min_width=width, no_wrap=True)
+    table.add_column("", min_width=2, no_wrap=True)
+
+    for row in rows:
+        passed = row.get("passed", "").lower() in ("true", "1", "yes")
+        fail_reasons = row.get("fail_reasons", "")
+        cells = [
+            _format_score_cell(field, row.get(field, ""), is_ang, _is_cell_failing(label, fail_reasons))
+            for field, label, _width, is_ang in available_cols
+        ]
+        cells.append(Text("✓", style=f"bold {_C_SAND}") if passed else Text("✗", style=f"dim {_C_ROSE}"))
+        table.add_row(*cells, style="" if passed else "dim")
+
+    return table
+
+
+def _make_per_model_table(rows: list[dict]) -> Table:
+    table = Table(
+        box=rich_box.SIMPLE,
+        show_header=True,
+        header_style=f"bold {_C_SAND}",
+        show_edge=False,
+        padding=(0, 1),
+        title="[dim]Per-model scores  (M1 = model_1_seed_000, M2 = model_2_seed_000)[/]",
+        title_justify="left",
+    )
+    table.add_column("Design", min_width=16, no_wrap=True)
+    per_model_avail = [c for c in _PER_MODEL_COLS if c[0] in rows[0]]
+    for _field, label, width, _is_ang in per_model_avail:
+        table.add_column(label, min_width=width, no_wrap=True)
+
+    for row in rows:
+        passed = row.get("passed", "").lower() in ("true", "1", "yes")
+        design_name = row.get("design_name", row.get("design_index", ""))
+        cells: list[Text] = [Text(_truncate_name(str(design_name)), style="bold")]
+        cells += [
+            _format_score_cell(field, row.get(field, ""), is_ang)
+            for field, _label, _width, is_ang in per_model_avail
+        ]
+        table.add_row(*cells, style="" if passed else "dim")
+
+    return table
+
+
+def _parse_scores_csv(csv_content: str) -> list[dict] | None:
+    try:
+        rows = list(csv.DictReader(io.StringIO(csv_content)))
+        return rows if rows else None
+    except Exception as exc:
+        err_console.print(f"  [dim]Could not parse scores CSV: {exc}[/]")
+        return None
+
+
+def _render_scores_table(csv_content: str, thresholds: dict | None = None) -> None:
+    rows = _parse_scores_csv(csv_content)
+    if rows is None:
+        return
+    console.print(_make_scores_table(rows, thresholds))
+
+
+def _render_per_model_table(csv_content: str) -> None:
+    rows = _parse_scores_csv(csv_content)
+    if rows is None or not _has_per_model_data(rows):
+        return
+    console.print(_make_per_model_table(rows))
+
+
+def _count_from_csv(csv_content: str) -> tuple[int, int]:
+    rows = _parse_scores_csv(csv_content)
+    if not rows:
+        return 0, 0
+    passed = sum(1 for r in rows if r.get("passed", "").lower() in ("true", "1", "yes"))
+    return passed, len(rows) - passed
 
 
 def _print_submission(result: dict) -> None:
@@ -141,131 +298,47 @@ def _print_dataset_ready(dataset_id: str | None, artifact_count: int) -> None:
     )
 
 
-_SCORE_DISPLAY_COLS = [
-    ("design_index", "#", 4, False),
-    ("esmfold_plddt", "pLDDT", 6, False),
-    ("af2_ptm", "pTM", 6, False),
-    ("af2_iptm", "ipTM", 6, False),
-    ("af2_ipae", "iPAE", 6, False),
-    ("rmsd", "RMSD", 7, True),
-    ("fail_reasons", "Failures", 30, False),
-]
-
-
-def _render_scores_table(csv_content: str, thresholds: dict | None = None) -> None:
-    try:
-        rows = list(csv.DictReader(io.StringIO(csv_content)))
-    except Exception as exc:
-        err_console.print(f"  [dim]Could not parse scores CSV: {exc}[/]")
-        return
-
-    if not rows:
-        return
-
-    table = Table(
-        box=rich_box.SIMPLE,
-        show_header=True,
-        header_style=f"bold {_C_SAND}",
-        show_edge=False,
-        padding=(0, 1),
-        title="[dim]Per-design scores[/]",
-        title_justify="left",
-    )
-
-    available_cols = [c for c in _SCORE_DISPLAY_COLS if c[0] in rows[0]]
-    for _field, label, width, _is_ang in available_cols:
-        table.add_column(label, min_width=width, no_wrap=True)
-
-    for row in rows:
-        passed = row.get("passed", "").lower() in ("true", "1", "yes")
-        row_style = _C_SAND if passed else ""
-        cells = []
-        for field, label, _width, is_ang in available_cols:
-            val = row.get(field, "")
-            if val in ("", "None", "none"):
-                cell = Text("—", style="dim")
-            elif field == "fail_reasons":
-                cell = Text(
-                    val[:40] + ("…" if len(val) > 40 else ""),
-                    style=f"dim {_C_ROSE}" if val else "dim",
-                )
-            elif field == "design_index":
-                cell = Text(val, style="bold")
-            else:
-                try:
-                    fval = float(val)
-                    formatted = f"{fval:.3f}" + (" Å" if is_ang else "")
-                    fail_str = row.get("fail_reasons", "")
-                    label_short = label.lower().replace(" ", "")
-                    is_failing = any(
-                        label_short in reason.lower() for reason in fail_str.split(";")
-                    )
-                    cell = Text(formatted, style=_C_ROSE if is_failing else "")
-                except (ValueError, TypeError):
-                    cell = Text(val, style="dim")
-            cells.append(cell)
-
-        icon = Text("✓" if passed else "✗", style=_C_SAND if passed else _C_ROSE)
-        if "fail_reasons" not in [c[0] for c in available_cols]:
-            cells.append(icon)
-        table.add_row(*cells, style=row_style if passed else "")
-
-    console.print(table)
-
-    if thresholds:
-        parts = []
-        if "plddt_threshold" in thresholds:
-            parts.append(f"pLDDT≥{thresholds['plddt_threshold']}")
-        if "ptm_threshold" in thresholds:
-            parts.append(f"pTM≥{thresholds['ptm_threshold']}")
-        if "iptm_threshold" in thresholds:
-            parts.append(f"ipTM≥{thresholds['iptm_threshold']}")
-        if "ipae_threshold" in thresholds:
-            parts.append(f"iPAE≤{thresholds['ipae_threshold']}")
-        if "rmsd_threshold" in thresholds:
-            parts.append(f"RMSD≤{thresholds['rmsd_threshold']}Å")
-        if parts:
-            console.print(f"  [dim]thresholds: {' | '.join(parts)}[/]")
-
-
 def _print_filter_done(
     job_id: str,
     final: dict,
     thresholds: dict | None = None,
     csv_content: str | None = None,
 ) -> None:
-    artifacts = final.get("final_state", {}).get("artifacts", final.get("artifacts", {}))
+    _results = final.get("_results", {})
+    workflow_artifacts: dict = _results.get("workflow_artifacts") or {}
 
-    passed = artifacts.get("designs_passed", 0)
-    failed = artifacts.get("designs_failed", 0)
+    passed = workflow_artifacts.get("designs_passed")
+    failed = workflow_artifacts.get("designs_failed")
+
+    if (passed is None or failed is None) and csv_content:
+        passed, failed = _count_from_csv(csv_content)
+    else:
+        passed = 0 if passed is None else passed
+        failed = 0 if failed is None else failed
+
     total = passed + failed
-    summary = artifacts.get("scores_summary", f"{passed}/{total} designs passed")
-    csv_uri = artifacts.get("scores_csv_gcs_uri", "")
 
     if csv_content:
         _render_scores_table(csv_content, thresholds)
 
     content = Text()
-    pass_style = _C_SAND if passed > 0 else _C_ROSE
-    content.append(f"{passed}/{total} designs passed  ", style=f"bold {pass_style}")
-    if failed > 0:
-        content.append(f"({failed} failed)\n\n", style=f"dim {_C_ROSE}")
-    else:
-        content.append("\n\n")
+    content.append(f"{passed} passed", style=f"bold {_C_SAND}")
+    content.append("  ·  ", style="dim")
+    content.append(f"{failed} failed", style="dim")
+    content.append("  ·  ", style="dim")
+    content.append(f"{total} evaluated\n\n", style="dim")
 
-    content.append(summary + "\n\n", style="dim")
-
-    if csv_uri:
-        content.append("scores CSV      ", style="dim")
-        content.append(f"{csv_uri}\n\n", style=f"{_C_BLUE}")
+    content.append("View scores inline:\n", style="bold")
+    content.append(f"  phi scores {job_id}\n\n", style=_C_SAND)
 
     content.append("Download results:\n", style="bold")
-    content.append(f"  phi download {job_id} --out ./results\n\n", style=_C_SAND)
+    content.append(f"  phi download {job_id} --out ./results\n", style=_C_SAND)
 
     if passed > 0:
+        content.append("\n")
         content.append("Run next design iteration:\n", style="bold")
         content.append(
-            "  phi filter      --dataset-id <next-dataset-id> --preset relaxed --wait",
+            "  phi filter --dataset-id <next-dataset-id> --preset relaxed --wait",
             style=_C_SAND,
         )
 

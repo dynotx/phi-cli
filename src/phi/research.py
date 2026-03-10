@@ -1,11 +1,11 @@
 import json
-import ssl
 import urllib.parse
 import urllib.request
 from datetime import datetime
 from pathlib import Path
 
 from phi.api import _request
+from phi.config import _ssl_context
 from phi.display import _C_BLUE, _C_ROSE, _C_SAND, console
 
 _TOOL_ICONS: dict[str, str] = {
@@ -160,14 +160,7 @@ def _stream_research(
     req = urllib.request.Request(url, headers={"Accept": "text/event-stream"})
 
     try:
-        try:
-            import certifi
-
-            ctx = ssl.create_default_context(cafile=certifi.where())
-        except ImportError:
-            ctx = ssl._create_unverified_context()
-
-        with urllib.request.urlopen(req, context=ctx, timeout=600) as resp:
+        with urllib.request.urlopen(req, context=_ssl_context(), timeout=600) as resp:
             event_type = "message"
             buffer: list[str] = []
 

@@ -5,8 +5,8 @@ from pathlib import Path
 from rich.markdown import Markdown
 from rich.panel import Panel
 
+import phi.config as config
 from phi.api import _request, _submit
-from phi.config import POLL_INTERVAL
 from phi.display import _C_BLUE, _C_ROSE, _C_SAND, _die, _print_status, _print_submission, console
 from phi.download import _download_job
 from phi.polling import _poll
@@ -15,19 +15,13 @@ from phi.types import PhiApiError
 
 
 def cmd_research(args: argparse.Namespace) -> None:
-    notes_file: Path | None = None
-    if not getattr(args, "no_save", False):
-        raw_notes = getattr(args, "notes_file", "./research.md")
-        notes_file = Path(raw_notes)
+    notes_file: Path | None = None if args.no_save else Path(args.notes_file)
+    dataset_id: str | None = args.dataset_id
 
-    dataset_id: str | None = getattr(args, "dataset_id", None)
-
-    if getattr(args, "stream", False):
+    if args.stream:
         _stream_research(
             question=args.question,
-            base_url=getattr(
-                args, "stream_url", "https://dynotx--research-agent-streaming-fastapi-app.modal.run"
-            ),
+            base_url=args.stream_url,
             notes_file=notes_file,
             dataset_id=dataset_id,
         )
@@ -42,10 +36,9 @@ def cmd_research(args: argparse.Namespace) -> None:
     if args.target:
         params["target"] = args.target
 
-    context_file = getattr(args, "context_file", None)
-    if context_file:
+    if args.context_file:
         try:
-            prior = Path(context_file).read_text(encoding="utf-8")
+            prior = Path(args.context_file).read_text(encoding="utf-8")
             existing = args.context or ""
             params["context"] = (prior + "\n\n" + existing).strip() if existing else prior
         except Exception as exc:
@@ -56,7 +49,7 @@ def cmd_research(args: argparse.Namespace) -> None:
     result = _submit("research", params, run_id=args.run_id)
     _print_submission(result)
     if args.wait:
-        console.print(f"\n[dim]Polling every {POLL_INTERVAL}s …[/]")
+        console.print(f"\n[dim]Polling every {config.POLL_INTERVAL}s …[/]")
         final = _poll(result["job_id"])
         _print_status(final)
 
@@ -119,9 +112,8 @@ def cmd_notes(args: argparse.Namespace) -> None:
     gcs_url: str | None = data.get("gcs_url")
     gcs_uri: str | None = data.get("gcs_uri")
 
-    out_path = getattr(args, "out", None)
-    if out_path:
-        out = Path(out_path)
+    if args.out:
+        out = Path(args.out)
         if out.suffix.lower() == ".md":
             dest = out
         else:

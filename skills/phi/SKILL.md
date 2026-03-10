@@ -2,10 +2,12 @@
 name: phi
 description: >
   Use the `phi` CLI to interact with the dyno-phi protein design platform:
-  uploading structure datasets, running folding / inverse-folding / complex-folding
-  jobs, filtering binder candidates, downloading results, and running research queries.
+  fetching and preparing structures, running backbone design (RFDiffusion3, BoltzGen),
+  inverse folding (ProteinMPNN), folding (ESMFold), complex folding (AlphaFold2),
+  filtering binder candidates, downloading results, and running research queries.
   Activate automatically when the user asks about phi commands, binder design
-  workflows, uploading PDB/CIF files, running AlphaFold2 / ESMFold / ProteinMPNN,
+  workflows, uploading PDB/CIF files, fetching structures from PDB/AFDB,
+  running RFDiffusion3/BoltzGen/AlphaFold2/ESMFold/ProteinMPNN,
   or scoring/filtering designs.
 ---
 
@@ -34,148 +36,17 @@ phi login
 
 ---
 
-## Core workflow
+## End-to-end workflow
 
 ```
-upload designs → filter (inverse folding → folding → complex folding → score) → download results
+research → fetch → design → filter → download
 ```
 
-### 1. Upload a dataset
-
-```bash
-# Upload a directory of PDB / CIF files (auto-expands directories)
-phi upload ./designs/
-
-# Upload specific files
-phi upload binder_001.cif binder_002.pdb
-
-# Cache the dataset ID for subsequent commands
-phi use <DATASET_ID>
-```
-
-After upload, a summary panel shows the `dataset_id` and the next commands to run.
+Each step is optional depending on your starting point.
 
 ---
 
-### 2. Run the filter pipeline
-
-The `phi filter` command runs the full binder scoring pipeline in one step:
-inverse folding (ProteinMPNN) → folding (ESMFold) → complex folding (AlphaFold2) → score.
-
-```bash
-# Run with the default filter preset and wait for completion
-phi filter --dataset-id <DATASET_ID> --preset default --wait
-
-# Or, if a dataset is already cached:
-phi filter --preset default --wait
-
-# Show scores table immediately after completion:
-phi filter --preset default --wait --out ./results
-```
-
-**Filter presets:**
-
-| Preset | pLDDT | pTM | ipTM | iPAE | RMSD |
-|--------|-------|-----|------|------|------|
-| `default` | ≥0.80 | ≥0.55 | ≥0.50 | ≤0.35 | ≤3.5 Å |
-| `relaxed` | ≥0.80 | ≥0.45 | ≥0.50 | ≤0.40 | ≤4.5 Å |
-
-Override any threshold individually:
-
-```bash
-phi filter --preset default --plddt-threshold 0.75 --rmsd-threshold 4.0 --wait
-```
-
-**MSA tool for complex folding** (important for novel designs):
-
-```bash
-# Default: mmseqs2 (fastest, uses sequence homologs)
-phi filter --preset default --msa-tool mmseqs2 --wait
-
-# single_sequence: skip MSA — best for truly novel de novo binders
-phi filter --preset default --msa-tool single_sequence --wait
-```
-
----
-
-### 3. Run individual tools
-
-All tool commands accept `--dataset-id ID` or use the cached dataset. Add `--wait` to
-poll until completion.
-
-#### Folding (ESMFold)
-```bash
-phi folding --dataset-id <ID> --wait
-# or using the canonical name:
-phi esmfold --dataset-id <ID> --recycles 3 --wait
-```
-
-#### Complex folding (AlphaFold2)
-```bash
-phi complex_folding --dataset-id <ID> --wait
-# or using the canonical name with full options:
-phi alphafold --dataset-id <ID> \
-  --models 1,2 \
-  --model-type multimer_v3 \
-  --msa-tool mmseqs2 \
-  --wait
-```
-
-#### Inverse folding (ProteinMPNN)
-```bash
-phi inverse_folding --dataset-id <ID> --wait
-# or using the canonical name:
-phi proteinmpnn --dataset-id <ID> --num-sequences 10 --temperature 0.1 --wait
-```
-
-#### ESM2 language model scoring
-```bash
-phi esm2 --dataset-id <ID> --wait
-```
-
-#### Boltz complex prediction
-```bash
-phi boltz --dataset-id <ID> --recycles 3 --wait
-```
-
----
-
-### 4. Download results
-
-```bash
-# Download to ./results (default) — key files: structures/, scores/
-phi download
-
-# Download a specific job
-phi download <JOB_ID> --out ./my-results
-
-# Download everything including MSA files and zip archives
-phi download --all
-```
-
-`phi download` organizes output into:
-- `structures/` — PDB files
-- `scores/` — scores.csv and raw JSON sidecars
-- `scores.csv` — merged scores table
-
----
-
-### 5. View scores
-
-```bash
-# Display scores table for the last job
-phi scores
-
-# Display top-20 candidates for a specific job
-phi scores <JOB_ID> --top 20
-
-# Save scores CSV locally
-phi scores --out ./scores.csv
-```
-
----
-
-## Research queries
+## 1. Research a target
 
 ```bash
 # Biological research query with literature citations
@@ -197,24 +68,221 @@ phi notes <DATASET_ID>
 
 ---
 
+## 2. Fetch and prepare structures
+
+`phi fetch` downloads a structure from RCSB PDB or the AlphaFold DB, optionally crops
+it by chain or residue range, and uploads it to a new dataset ready for design.
+
+```bash
+# Fetch a PDB entry (all chains)
+phi fetch --pdb 6M0J
+
+# Fetch a specific chain and residue range
+phi fetch --pdb 6M0J --chain A --start 1 --end 200
+
+# Fetch an AlphaFold DB prediction and trim low-confidence regions (pLDDT < 70)
+phi fetch --uniprot P12345 --plddt-cutoff 70
+
+# Upload the prepared structure to a new dataset for use with phi design
+phi fetch --pdb 6M0J --chain A --upload
+```
+
+After `--upload`, a new `dataset_id` is cached. The output prints the full `phi design`
+command ready to run.
+
+---
+
+## 3. Design binders
+
+### RFDiffusion3 (backbone diffusion — recommended default)
+
+```bash
+# Alias: phi design
+phi design --fasta target.fasta --hotspots A25,A30,A35 --num-designs 50 --wait
+
+# Specify binder length range
+phi design --fasta target.fasta --binder-min-length 60 --binder-max-length 100 --num-designs 50 --wait
+
+# Use a structure file from a cached dataset
+phi design --dataset-id <ID> --hotspots A25,A30 --num-designs 50 --wait
+
+# Specify partial diffusion steps (for motif scaffolding)
+phi rfdiffusion3 --fasta target.fasta --hotspots A25,A30 --partial-diffusion-steps 10 --num-designs 50 --wait
+```
+
+### BoltzGen (all-atom diffusion — for high-quality production runs)
+
+```bash
+# Full pipeline from a design YAML
+phi boltzgen --yaml design.yaml --protocol protein-anything --num-designs 50 --wait
+
+# Specify a budget (final diversity-filtered set size)
+phi boltzgen --yaml design.yaml --num-designs 1000 --budget 50 --wait
+
+# Run only specific pipeline steps
+phi boltzgen --yaml design.yaml --boltzgen-steps "design inverse_folding" --num-designs 50 --wait
+
+# Inverse folding only (resequence an existing backbone from a YAML spec)
+phi boltzgen --yaml backbone.yaml --only-inverse-fold --inverse-fold-num-sequences 10 --wait
+
+# Use a structure already uploaded to cloud storage
+phi boltzgen --yaml design.yaml --yaml-gcs gs://bucket/design.yaml --structure-gcs gs://bucket/target.cif --wait
+```
+
+**BoltzGen protocols:**
+
+| Protocol | Use |
+|---|---|
+| `protein-anything` | Design proteins to bind proteins or peptides (default) |
+| `peptide-anything` | Design (cyclic) peptides to bind proteins |
+| `protein-small_molecule` | Design proteins to bind small molecules |
+| `antibody-anything` | Design antibody CDRs |
+| `nanobody-anything` | Design nanobody CDRs |
+| `protein-redesign` | Redesign or optimize existing proteins |
+
+**BoltzGen pipeline steps** (pass to `--boltzgen-steps`):
+`design`, `inverse_folding`, `folding`, `design_folding`, `affinity`, `analysis`, `filtering`
+
+---
+
+## 4. Upload an existing design set
+
+```bash
+# Upload a directory of PDB / CIF files (auto-expands directories)
+phi upload ./designs/
+
+# Upload specific files
+phi upload binder_001.cif binder_002.pdb
+
+# Cache the dataset ID for subsequent commands
+phi use <DATASET_ID>
+```
+
+---
+
+## 5. Run the filter pipeline
+
+`phi filter` scores binder candidates end-to-end:
+inverse folding (ProteinMPNN) → folding (ESMFold) → complex folding (AlphaFold2) → score.
+
+```bash
+# Run with the default filter preset and wait for completion
+phi filter --dataset-id <DATASET_ID> --preset default --wait
+
+# Or, if a dataset is cached:
+phi filter --preset default --wait
+
+# Download results immediately after completion:
+phi filter --preset default --wait --out ./results
+```
+
+**Filter presets:**
+
+| Preset | pLDDT | pTM | ipTM | iPAE | RMSD |
+|--------|-------|-----|------|------|------|
+| `default` | ≥0.80 | ≥0.55 | ≥0.50 | ≤0.35 | ≤3.5 Å |
+| `relaxed` | ≥0.80 | ≥0.45 | ≥0.50 | ≤0.40 | ≤4.5 Å |
+
+Override any threshold individually:
+
+```bash
+phi filter --preset default --plddt-threshold 0.75 --rmsd-threshold 4.0 --wait
+```
+
+**MSA tool for complex folding:**
+
+```bash
+# Default: mmseqs2 (uses sequence homologs — best for natural-like designs)
+phi filter --preset default --msa-tool mmseqs2 --wait
+
+# single_sequence: skip MSA — best for truly novel de novo binders
+phi filter --preset relaxed --msa-tool single_sequence --wait
+```
+
+---
+
+## 6. Run individual tools
+
+All tool commands accept `--dataset-id ID` or use the cached dataset. Add `--wait` to
+poll until completion.
+
+#### Inverse folding (ProteinMPNN)
+```bash
+phi inverse_folding --dataset-id <ID> --wait
+phi proteinmpnn --dataset-id <ID> --num-sequences 10 --temperature 0.1 --wait
+```
+
+#### Folding (ESMFold)
+```bash
+phi folding --dataset-id <ID> --wait
+phi esmfold --dataset-id <ID> --recycles 3 --wait
+```
+
+#### Complex folding (AlphaFold2 multimer)
+```bash
+phi complex_folding --dataset-id <ID> --wait
+phi alphafold --dataset-id <ID> \
+  --models 1,2 \
+  --model-type multimer_v3 \
+  --msa-tool mmseqs2 \
+  --wait
+```
+
+#### ESM2 language model scoring
+```bash
+phi esm2 --dataset-id <ID> --wait
+```
+
+#### Boltz complex prediction
+```bash
+phi boltz --dataset-id <ID> --recycles 3 --wait
+```
+
+---
+
+## 7. Download results
+
+```bash
+# Download to ./results (default) — key files: structures/, scores/
+phi download
+
+# Download a specific job
+phi download <JOB_ID> --out ./my-results
+
+# Download everything including MSA files and archives
+phi download --all
+```
+
+`phi download` organizes output into:
+- `structures/` — PDB files
+- `scores/` — scores.csv and raw JSON sidecars
+- `scores.csv` — merged scores table
+
+---
+
+## 8. View scores
+
+```bash
+# Display scores table for the last job
+phi scores
+
+# Display top-20 candidates for a specific job
+phi scores <JOB_ID> --top 20
+
+# Save scores CSV locally
+phi scores --out ./scores.csv
+```
+
+---
+
 ## Job management
 
 ```bash
-# List recent jobs
-phi jobs
-
-# Filter by status
+phi jobs                        # List recent jobs
 phi jobs --status completed
-phi jobs --status failed
-
-# Check a specific job
-phi status <JOB_ID>
-
-# Cancel a running job
+phi status <JOB_ID>             # Check a specific job
 phi cancel <JOB_ID>
-
-# Print the log stream URL
-phi logs <JOB_ID> --follow
+phi logs <JOB_ID>               # Print the log stream URL
 ```
 
 ---
@@ -222,34 +290,26 @@ phi logs <JOB_ID> --follow
 ## Dataset management
 
 ```bash
-# List all datasets
-phi datasets
-
-# Show details for a specific dataset
-phi dataset <DATASET_ID>
-
-# Cache a dataset as the current working dataset
-phi use <DATASET_ID>
+phi datasets                    # List all datasets
+phi dataset <DATASET_ID>        # Show details
+phi use <DATASET_ID>            # Cache as the current working dataset
 ```
 
 ---
 
-## Tuning and tips
+## Tips
+
+### State caching
+`phi use <DATASET_ID>` writes to `.phi-state.json` in the current directory.
+`phi filter` also caches `last_job_id`, so `phi download` and `phi scores` work
+without arguments after a filter run.
 
 ### Polling interval
-All polling commands respect `--poll-interval SECONDS` (global flag):
-
 ```bash
 phi filter --preset default --wait --poll-interval 10
 ```
 
-### Caching
-`phi use <DATASET_ID>` writes to `.phi-state.json` in the current directory.
-Commands that accept `--dataset-id` will fall back to this cached value.
-`phi filter` also caches the `last_job_id`, so `phi download` and `phi scores`
-work without arguments after a filter run.
-
-### Key metrics generated by the pipeline
+### Key scoring metrics
 
 | Metric | Source | Good threshold |
 |--------|--------|----------------|
@@ -259,46 +319,60 @@ work without arguments after a filter run.
 | `af2_ipae` | AlphaFold2 multimer | ≤ 0.35 |
 | `rmsd` | Binder vs design backbone | ≤ 3.5 Å |
 
-### Tool name mapping
-
-The generic step names alias to specific models:
+### Tool name aliases
 
 | Generic name | Tool | Notes |
 |---|---|---|
-| `folding` | ESMFold | Fast single-sequence folding (~1 min) |
-| `complex_folding` | AlphaFold2 multimer | Binder–target complex (8–15 min) |
-| `inverse_folding` | ProteinMPNN | Sequence design from backbone (1–2 min) |
-
-The specific tool names (`esmfold`, `alphafold`, `proteinmpnn`) are always available
-and accept full model-configuration flags. The generic names use sensible defaults.
+| `folding` | ESMFold | Fast single-sequence folding |
+| `complex_folding` | AlphaFold2 multimer | Binder–target complex |
+| `inverse_folding` | ProteinMPNN | Sequence design from backbone |
+| `design` | RFDiffusion3 | Backbone diffusion (default) |
 
 ---
 
 ## Common workflows
 
-### Upload and run the full filter pipeline
+### Research-guided design
+```bash
+phi research \
+  --question "Which residues on EGFR domain III are critical for antibody binding?" \
+  --target EGFR --structures --notes-file ./research.md
+
+phi fetch --pdb 1IVO --chain A --start 300 --end 500 --upload
+
+phi design --hotspots A310,A315,A320 --num-designs 100 --wait
+
+phi filter --preset relaxed --msa-tool single_sequence --wait --out ./results
+phi scores
+```
+
+### Upload existing designs and score
 ```bash
 phi upload ./designs/
 phi filter --preset default --wait --out ./results
 phi scores
 ```
 
-### Relax thresholds for novel designs (no natural homologs)
+### Relax thresholds for novel de novo binders
 ```bash
 phi filter --preset relaxed --msa-tool single_sequence --wait
 ```
 
-### Custom threshold override
+### BoltzGen inverse folding only (resequence a backbone)
 ```bash
-phi filter --plddt-threshold 0.75 --iptm-threshold 0.45 --rmsd-threshold 4.0 --wait
+phi boltzgen \
+  --yaml backbone_spec.yaml \
+  --only-inverse-fold \
+  --inverse-fold-num-sequences 10 \
+  --wait
 ```
 
-### Research-guided design
+### Full BoltzGen production run
 ```bash
-phi research \
-  --question "Which residues on EGFR domain III are most critical for antibody binding?" \
-  --target EGFR \
-  --structures \
-  --dataset-id $DATASET_ID \
-  --notes-file ./research.md
+phi boltzgen \
+  --yaml design_spec.yaml \
+  --protocol protein-anything \
+  --num-designs 10000 \
+  --budget 100 \
+  --wait
 ```

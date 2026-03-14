@@ -26,7 +26,7 @@ def _require_key(d: dict, key: str, context: str) -> str:
 
 
 def _request(method: str, path: str, body: dict | None = None) -> dict:
-    url = f"{_base_url()}/api/v1{path}"
+    url = f"{_base_url()}/v1/phi{path}"
     headers = {
         "Content-Type": "application/json",
         "x-api-key": _require_api_key(),

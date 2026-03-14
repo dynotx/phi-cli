@@ -98,7 +98,7 @@ def _request_signed_urls(session_id: str, files: list[Path]) -> dict[str, str]:
     for batch in batches:
         resp = _request(
             "POST",
-            f"/ingest_sessions/{session_id}/upload_urls",
+            f"/files/upload-url?session_id={session_id}",
             {"files": [p.name for p in batch]},
         )
         for entry in resp.get("urls", []):

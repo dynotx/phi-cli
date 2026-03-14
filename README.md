@@ -228,25 +228,25 @@ modal deploy biomodals/modal_proteinmpnn.py
 
 ## Claude Code skill
 
-Install the `phi` skill to get conversational prompting for all `phi` commands
-directly inside Claude Code (Cursor or the `claude` CLI):
-
-```bash
-# Install for all your projects
-mkdir -p ~/.claude/skills/phi
-cp skills/phi/SKILL.md ~/.claude/skills/phi/SKILL.md
-```
-
-Then in Claude Code you can ask naturally:
+The `phi` skill is bundled at `.claude/skills/phi/SKILL.md` and is automatically
+available when you open this repo in Claude Code (Cursor or the `claude` CLI).
+No installation needed — just open the project and ask naturally:
 
 ```
 Upload the PDB files in ./examples/binders/ and run the default filter pipeline.
 ```
 
-Or invoke directly:
+Or invoke directly with the slash command:
 
 ```
 /phi upload ./examples/binders/
+```
+
+**To make the skill available in all your projects** (outside this repo):
+
+```bash
+mkdir -p ~/.claude/skills/phi
+cp skills/phi/SKILL.md ~/.claude/skills/phi/SKILL.md
 ```
 
 ---
@@ -271,8 +271,14 @@ pytest tests/
 
 ### Releasing to PyPI
 
+Releases are published via GitHub Actions. Push a version tag to trigger the workflow:
+
 ```bash
-pip install build twine
-python -m build
-twine upload dist/*
+# Bump src/phi/_version.py, update CHANGELOG.md, then:
+git tag v0.1.0
+git push origin main --tags
 ```
+
+The workflow publishes to **TestPyPI** automatically, then waits for manual
+approval before publishing to the real **PyPI**. See
+`.github/workflows/publish.yml` for details.

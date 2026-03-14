@@ -63,14 +63,12 @@ def cmd_filter(args: argparse.Namespace) -> None:
         final = _poll(job_id)
         _print_status(final)
         if final.get("status") == "completed":
-            run_id_final = final.get("run_id")
             results: dict = {}
-            if run_id_final:
-                try:
-                    results = _request("GET", f"/runs/{run_id_final}/results")
-                    final["_results"] = results
-                except PhiApiError:
-                    pass
+            try:
+                results = _request("GET", f"/jobs/{job_id}/scores")
+                final["_results"] = results
+            except PhiApiError:
+                pass
             csv_content = _load_scores_csv(results.get("artifact_files") or [])
             _print_filter_done(job_id, final, thresholds=params, csv_content=csv_content)
         if args.out:

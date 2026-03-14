@@ -85,7 +85,7 @@ def _create_upload_session(filename: str, name: str | None) -> str:
 def _get_signed_url(session_id: str, filename: str) -> str:
     resp = _request(
         "POST",
-        f"/ingest_sessions/{session_id}/upload_urls",
+        f"/files/upload-url?session_id={session_id}",
         {"files": [filename]},
     )
     urls = resp.get("urls", [])

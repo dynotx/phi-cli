@@ -1,14 +1,8 @@
 ---
 name: phi
-description: >
-  Use the `phi` CLI to interact with the dyno-phi protein design platform:
-  fetching and preparing structures, running backbone design (RFDiffusion3, BoltzGen),
-  inverse folding (ProteinMPNN), folding (ESMFold), complex folding (AlphaFold2),
-  filtering binder candidates, downloading results, and running research queries.
-  Activate automatically when the user asks about phi commands, binder design
-  workflows, uploading PDB/CIF files, fetching structures from PDB/AFDB,
-  running RFDiffusion3/BoltzGen/AlphaFold2/ESMFold/ProteinMPNN,
-  or scoring/filtering designs.
+description: "Run phi CLI commands for the dyno protein design platform: fetch structures, design binders (RFDiffusion3, BoltzGen), run folding/inverse-folding pipelines (ESMFold, AlphaFold2, ProteinMPNN), filter and score candidates, download results, and run research queries. Use when the user asks about phi commands, binder design, uploading PDB/CIF files, or scoring designs."
+argument-hint: "[command] [options]"
+allowed-tools: Bash(phi *)
 ---
 
 # phi CLI skill

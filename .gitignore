@@ -37,6 +37,9 @@ service-account.json
 # Modal
 .modal/
 
+# Cursor docs (local only)
+docs/
+
 # IDE
 .idea/
 .vscode/

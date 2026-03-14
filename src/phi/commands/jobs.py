@@ -70,7 +70,7 @@ def cmd_jobs(args: argparse.Namespace) -> None:
 
 
 def cmd_logs(args: argparse.Namespace) -> None:
-    url = f"{_base_url()}/api/v1/jobs/{args.job_id}/logs/stream"
+    url = f"{_base_url()}/v1/phi/jobs/{args.job_id}/logs/stream"
     console.print(f"Streaming logs from [{_C_BLUE}]{url}[/]")
     console.print("(Note: EventSource auth requires token as query param on this endpoint)")
     console.print(f"  [dim]curl -N '{url}?x_api_key={_require_api_key()[:8]}...'[/]")
@@ -87,12 +87,8 @@ def cmd_scores(args: argparse.Namespace) -> None:
     if s.get("status") not in ("completed", "failed"):
         _die(f"Job is '{s.get('status')}' — scores are only available after completion")
 
-    run_id = s.get("run_id")
-    if not run_id:
-        _die("No run_id found for this job")
-
     try:
-        results = _request("GET", f"/runs/{run_id}/results")
+        results = _request("GET", f"/jobs/{args.job_id}/scores")
     except PhiApiError as e:
         _die(f"Could not fetch results: {e}")
 
@@ -122,11 +118,9 @@ def cmd_download(args: argparse.Namespace) -> None:
     s = _status(args.job_id)
     if s.get("status") != "completed":
         _die(f"Job is '{s.get('status')}' — can only download completed jobs")
-    run_id = s.get("run_id")
-    if run_id:
-        try:
-            results = _request("GET", f"/runs/{run_id}/results")
-            s["_results"] = results
-        except PhiApiError:
-            pass
+    try:
+        results = _request("GET", f"/jobs/{args.job_id}/scores")
+        s["_results"] = results
+    except PhiApiError:
+        pass
     _download_job(s, args.out, all_files=getattr(args, "all", False))

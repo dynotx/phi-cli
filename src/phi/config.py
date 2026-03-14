@@ -6,7 +6,7 @@ from pathlib import Path
 
 from phi.display import _C_BLUE, _die, console
 
-DEFAULT_BASE_URL = "https://design.dynotx.com"
+DEFAULT_BASE_URL = "https://api.dyno-agents.app"
 POLL_INTERVAL: float = 5
 POLL_TIMEOUT = 7200
 TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
@@ -146,8 +146,8 @@ def _require_api_key() -> str:
     if not key:
         _die(
             "DYNO_API_KEY is not set.\n"
-            "  1. Open https://design.dynotx.com/dashboard/settings\n"
-            "  2. Create an API key under 'API keys'\n"
+            "  1. Open https://api.dyno-agents.app and navigate to Settings → API keys\n"
+            "  2. Create an API key\n"
             "  3. Run: export DYNO_API_KEY=your_key"
         )
     _CACHED_API_KEY = key

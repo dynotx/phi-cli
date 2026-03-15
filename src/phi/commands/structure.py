@@ -85,15 +85,13 @@ def _create_upload_session(filename: str, name: str | None) -> str:
 def _get_signed_url(session_id: str, filename: str) -> str:
     resp = _request(
         "POST",
-        f"/files/upload-url?session_id={session_id}",
+        f"/ingest_sessions/{session_id}/upload_urls",
         {"files": [filename]},
     )
     urls = resp.get("urls", [])
-    if not urls:
-        _die("No signed URL returned for structure upload")
-    url = urls[0].get("url")
+    url = urls[0].get("url") if urls else None
     if not url:
-        _die(f"Signed URL response missing 'url' key: {urls[0]}")
+        _die(f"No signed URL returned for structure upload. Response: {resp}")
     assert isinstance(url, str)
     return url
 

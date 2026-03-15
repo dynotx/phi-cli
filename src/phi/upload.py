@@ -92,21 +92,25 @@ def _create_ingest_session(files: list[Path], args: argparse.Namespace) -> str:
 
 def _request_signed_urls(session_id: str, files: list[Path]) -> dict[str, str]:
     total = len(files)
-    batches = [files[i : i + UPLOAD_BATCH_SIZE] for i in range(0, total, UPLOAD_BATCH_SIZE)]
-    console.print(f"  Requesting signed URLs ({len(batches)} batch(es) of ≤{UPLOAD_BATCH_SIZE}) …")
+    console.print(f"  Requesting signed URLs ({total} file(s)) …")
     url_map: dict[str, str] = {}
-    for batch in batches:
+    # Batch requests to stay within the 50-file-per-call limit.
+    for i in range(0, total, UPLOAD_BATCH_SIZE):
+        batch = files[i : i + UPLOAD_BATCH_SIZE]
         resp = _request(
             "POST",
-            f"/files/upload-url?session_id={session_id}",
-            {"files": [p.name for p in batch]},
+            f"/ingest_sessions/{session_id}/upload_urls",
+            {"files": [f.name for f in batch]},
         )
         for entry in resp.get("urls", []):
-            url_map[entry["file"]] = entry["url"]
+            filename = entry.get("file")
+            url = entry.get("url")
+            if filename and url:
+                url_map[str(filename)] = str(url)
     if len(url_map) != total:
         _die(
             f"Expected {total} signed URLs but received {len(url_map)}. "
-            "Check the ingest_sessions endpoint."
+            "Check the /ingest_sessions/{session_id}/upload_urls endpoint."
         )
     return url_map
 

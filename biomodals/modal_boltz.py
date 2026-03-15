@@ -55,7 +55,7 @@ ALLOWED_AAS = "ACDEFGHIKLMNPQRSTVWY"
 DEFAULT_PARAMS = "--use_msa_server --seed 42"
 
 
-def download_model():
+def download_model() -> None:
     """Forces download of the Boltz-1 model by running it once.
 
     Args:
@@ -303,7 +303,7 @@ def boltz(
                         gcs_bucket=gcs_bucket,
                     )
                     return base.create_success_result(
-                        output_files=output_files,  # type: ignore[arg-type]
+                        output_files=output_files,
                         message=f"Boltz completed: {len(output_files)} files uploaded",
                         stdout=result.stdout,
                         num_output_files=len(output_files),
@@ -351,7 +351,7 @@ def boltz(
                             "size_bytes": file_path.stat().st_size,
                             "metadata": {},
                         }
-                        output_files.append(file_dict)  # type: ignore[arg-type]
+                        output_files.append(file_dict)
 
                     return {
                         "exit_code": 0,
@@ -366,7 +366,7 @@ def boltz(
                 # No GCS upload - return local files in dict format
                 if use_base_class:
                     return base.create_success_result(
-                        output_files=output_files_paths,  # type: ignore[arg-type]
+                        output_files=output_files_paths,
                         message=f"Boltz completed: {len(output_files_paths)} files generated",
                         stdout=result.stdout,
                         num_output_files=len(output_files_paths),
@@ -383,7 +383,7 @@ def boltz(
                             "size_bytes": file_path.stat().st_size,
                             "metadata": {},
                         }
-                        output_files.append(file_info)  # type: ignore[arg-type]
+                        output_files.append(file_info)
 
                     return {
                         "exit_code": 0,

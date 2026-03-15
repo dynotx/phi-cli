@@ -151,10 +151,14 @@ def _make_scores_table(rows: list[dict], thresholds: dict | None) -> Table:
         passed = row.get("passed", "").lower() in ("true", "1", "yes")
         fail_reasons = row.get("fail_reasons", "")
         cells = [
-            _format_score_cell(field, row.get(field, ""), is_ang, _is_cell_failing(label, fail_reasons))
+            _format_score_cell(
+                field, row.get(field, ""), is_ang, _is_cell_failing(label, fail_reasons)
+            )
             for field, label, _width, is_ang in available_cols
         ]
-        cells.append(Text("✓", style=f"bold {_C_SAND}") if passed else Text("✗", style=f"dim {_C_ROSE}"))
+        cells.append(
+            Text("✓", style=f"bold {_C_SAND}") if passed else Text("✗", style=f"dim {_C_ROSE}")
+        )
         table.add_row(*cells, style="" if passed else "dim")
 
     return table
@@ -317,11 +321,15 @@ def _print_filter_done(
         # Fall back to counting output_files by artifact_type
         output_files: list[dict] = final.get("output_files") or []
         if output_files:
-            passed = passed if passed is not None else sum(
-                1 for f in output_files if f.get("artifact_type") == "passed_designs"
+            passed = (
+                passed
+                if passed is not None
+                else sum(1 for f in output_files if f.get("artifact_type") == "passed_designs")
             )
-            failed = failed if failed is not None else sum(
-                1 for f in output_files if f.get("artifact_type") == "failed_designs"
+            failed = (
+                failed
+                if failed is not None
+                else sum(1 for f in output_files if f.get("artifact_type") == "failed_designs")
             )
 
     passed = 0 if passed is None else passed

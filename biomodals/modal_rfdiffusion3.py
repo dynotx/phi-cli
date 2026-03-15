@@ -48,7 +48,7 @@ GPU_MEMORY_GB = {
 }
 
 
-def download_rfd3_checkpoints():
+def download_rfd3_checkpoints() -> None:
     """Download RFD3 checkpoints during image build."""
     import subprocess
 
@@ -411,7 +411,7 @@ def foundry_diagnostics():
         return {"success": False, "error": str(e)}
 
     # If all imports failed, list site-packages
-    print("\nListing site-packages for 'foundry' or 'rc':")  # type: ignore[unreachable]
+    print("\nListing site-packages for 'foundry' or 'rc':")
     result = subprocess.run(
         [
             "find",
@@ -1182,7 +1182,7 @@ def rfdiffusion3_generate(
 
             elif False:
                 # Binder design with DesignInputSpecification
-                if not length:  # type: ignore[unreachable]
+                if not length:
                     raise ValueError("Binder design requires --length parameter for binder size")
 
                 print(f"Generating {num_designs} binders of length {length} for target...")
@@ -1714,7 +1714,7 @@ def rfdiffusion3_generate(
             raise
 
         # Collect output files
-        output_files_list = [  # type: ignore[unreachable]
+        output_files_list = [
             (out_file.relative_to(out_path), out_file.read_bytes())
             for out_file in out_path.rglob("*")
             if out_file.is_file()

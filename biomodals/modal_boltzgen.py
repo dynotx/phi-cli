@@ -39,7 +39,7 @@ GPU = os.environ.get("GPU", "L40S")
 TIMEOUT = int(os.environ.get("TIMEOUT", 120))
 
 
-def download_boltzgen_models():
+def download_boltzgen_models() -> None:
     """Download all boltzgen models during image build to avoid runtime timeouts."""
 
     # Download all artifacts to default cache location (~/.cache)
@@ -746,7 +746,7 @@ def boltzgen_run(
 
 
 @app.local_entrypoint()
-def test_merge_only():
+def test_merge_only() -> None:
     """Test merge step only using existing GCS data (for debugging).
 
     IMPORTANT: Get the run_id from the output of test_boltzgen_parallel.py

@@ -12,7 +12,7 @@ from phi.research import (
 
 
 def test_parse_sse_line_data() -> None:
-    result = _parse_sse_line(b"data: {\"event\": \"start\"}\n")
+    result = _parse_sse_line(b'data: {"event": "start"}\n')
     assert result == ("_data", '{"event": "start"}')
 
 

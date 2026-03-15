@@ -184,7 +184,9 @@ def cmd_fetch(args: argparse.Namespace) -> None:
     if total_after != total_before:
         console.print(f"  [dim]After cropping: {total_after} residues[/dim]")
     if total_after == 0:
-        _die("No residues remain after cropping. Check --chain, --residues, and --trim-low-confidence.")
+        _die(
+            "No residues remain after cropping. Check --chain, --residues, and --trim-low-confidence."
+        )
 
     out_path = _save_pdb(pdb_content, source_id, args.chain, args.out)
     console.print(f"  [{_C_SAND}]Saved[/] → [bold]{out_path}[/bold]  ({total_after} residues)")

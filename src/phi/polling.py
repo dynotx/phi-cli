@@ -56,9 +56,7 @@ def _poll(job_id: str, quiet: bool = False, poll_interval: float | None = None) 
     if console.is_terminal:
         with console.status("", spinner="dots") as live:
 
-            def _on_tick_terminal(
-                s: dict, status: str, pct: int, elapsed: int, step: str
-            ) -> None:
+            def _on_tick_terminal(s: dict, status: str, pct: int, elapsed: int, step: str) -> None:
                 color = _STATUS_COLOR.get(status, "white")
                 msg = f"[{color}]{status}[/]  [dim]{pct:>3}%  {elapsed:>4}s[/]"
                 if step:
@@ -92,9 +90,7 @@ def _ingest_poll(session_id: str) -> dict:
 
             return _ingest_poll_loop(session_id, config.POLL_INTERVAL, _on_tick_terminal)
 
-    def _on_tick_plain(
-        s: dict, status: str, uploaded: int, expected: object, elapsed: int
-    ) -> None:
+    def _on_tick_plain(s: dict, status: str, uploaded: int, expected: object, elapsed: int) -> None:
         print(f"  [{elapsed:>4}s]  {status:<14}  {uploaded}/{expected} files indexed")
 
     return _ingest_poll_loop(session_id, config.POLL_INTERVAL, _on_tick_plain)

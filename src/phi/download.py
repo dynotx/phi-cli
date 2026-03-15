@@ -134,9 +134,7 @@ def _print_artifact_summary(artifact_files: list[dict], selected_types: set[str]
         total_bytes = sum(af.get("size_bytes") or 0 for af in items)
         will_dl = atype in selected_types
         action = (
-            f"→ {_DOWNLOAD_SUBDIR.get(atype, '.')}/"
-            if will_dl
-            else "[dim]skip (use --all)[/dim]"
+            f"→ {_DOWNLOAD_SUBDIR.get(atype, '.')}/" if will_dl else "[dim]skip (use --all)[/dim]"
         )
         style = "" if will_dl else "dim"
         table.add_row(
@@ -148,9 +146,7 @@ def _print_artifact_summary(artifact_files: list[dict], selected_types: set[str]
     console.print(table)
 
 
-def _download_artifacts(
-    to_download: list[dict], out_dir: Path
-) -> tuple[int, int, dict[str, int]]:
+def _download_artifacts(to_download: list[dict], out_dir: Path) -> tuple[int, int, dict[str, int]]:
     downloaded, errors = 0, 0
     counts_by_subdir: dict[str, int] = defaultdict(int)
 
@@ -178,8 +174,7 @@ def _download_artifacts(
                     errors += 1
             else:
                 console.print(
-                    f"  [{_C_ROSE}]⚠ {Path(name).name}: "
-                    f"server could not generate a download URL[/]"
+                    f"  [{_C_ROSE}]⚠ {Path(name).name}: server could not generate a download URL[/]"
                 )
                 errors += 1
             progress.advance(task)
@@ -193,7 +188,9 @@ def _write_manifest(out_dir: Path, data: object) -> None:
     console.print(f"  [dim]manifest → {manifest}[/]")
 
 
-def _download_artifact_files(artifact_files: list[dict], out: Path, out_dir: str, all_files: bool) -> None:
+def _download_artifact_files(
+    artifact_files: list[dict], out: Path, out_dir: str, all_files: bool
+) -> None:
     to_download, to_skip = _categorize_artifacts(artifact_files, all_files)
     selected_types = {af.get("artifact_type") or "file" for af in to_download}
     _print_artifact_summary(artifact_files, selected_types)

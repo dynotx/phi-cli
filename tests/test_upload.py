@@ -1,3 +1,4 @@
+import argparse
 import sys
 from pathlib import Path
 
@@ -8,9 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from phi.upload import _collect_files
 
 
-def _args(**kwargs):  # type: ignore[return]
-    import argparse
-
+def _args(**kwargs: object) -> argparse.Namespace:
     ns = argparse.Namespace(files=[], dir=None, file_type=None)
     for k, v in kwargs.items():
         setattr(ns, k, v)

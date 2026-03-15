@@ -23,7 +23,7 @@ GPU = os.environ.get("GPU", None)
 TIMEOUT = int(os.environ.get("TIMEOUT", 15))
 
 
-def download_model():
+def download_model() -> None:
     import esm
 
     _model, _alphabet = esm.pretrained.esm2_t33_650M_UR50D()

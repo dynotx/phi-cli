@@ -42,6 +42,7 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
     "types-requests",
+    "types-PyYAML",
 ]
 
 [project.scripts]
@@ -88,7 +89,7 @@ ignore = [
 # Biomodals run inside Modal GPU containers. They use older patterns (percent
 # formatting, bare open(), zip() without strict=) that are intentional and
 # safe in that context. E402 is expected (late imports inside Modal entrypoints).
-"biomodals/*.py" = ["E402", "SIM115", "B905", "UP031", "SIM108", "B007", "W293"]
+"biomodals/*.py" = ["E402", "SIM115", "B905", "UP031", "UP038", "SIM108", "B007", "W293"]
 
 # ── MyPy ──────────────────────────────────────────────────────────────────────
 [tool.mypy]
@@ -103,6 +104,17 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 ignore_missing_imports = true
+
+# Biomodals run in Modal GPU containers with many third-party libs that lack
+# stubs.  Relax the strict rules that apply to src/phi/ so we only enforce what
+# matters locally: missing imports are already suppressed globally.
+[[tool.mypy.overrides]]
+module = ["biomodals", "biomodals.*", "biomodals.utils", "biomodals.utils.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+warn_return_any = false
+ignore_missing_imports = true
+disable_error_code = ["import-untyped", "call-arg", "arg-type"]
 
 # ── Pytest ────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]

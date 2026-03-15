@@ -83,7 +83,7 @@ app = App(
     timeout=TIMEOUT * 60,
     secrets=[modal.Secret.from_name("cloudsql-credentials")],
 )
-def bindcraft(  # type: ignore[no-untyped-def]
+def bindcraft(
     design_path,
     binder_name,
     pdb_str,

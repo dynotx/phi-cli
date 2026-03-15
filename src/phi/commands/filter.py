@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 
 from phi.api import _request, _require_key, _submit
 from phi.config import _FILTER_PRESETS, _resolve_dataset_id, _save_state
@@ -71,10 +72,9 @@ def cmd_filter(args: argparse.Namespace) -> None:
                 if results.get("download_url"):
                     # Current API returns a flat { download_url, filename, ... }
                     from phi.download import _fetch_url_to_str
-                    try:
+
+                    with contextlib.suppress(Exception):
                         csv_content = _fetch_url_to_str(results["download_url"])
-                    except Exception:
-                        pass
                 else:
                     csv_content = _load_scores_csv(results.get("artifact_files") or [])
             except PhiApiError:

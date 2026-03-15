@@ -317,7 +317,7 @@ def esmfold(
 
         # Create a Python script that will run in the conda environment
         script_path = Path(tmpdir) / "run_esmfold.py"
-        script_content = f'''
+        script_content = f"""
 import json
 import os
 import sys
@@ -403,7 +403,7 @@ for i, (name, seq) in enumerate(records):
 summary_path = output_dir / "results.json"
 summary_path.write_text(json.dumps(results, indent=2))
 print(f"Completed {{len(results)}} sequences")
-'''
+"""
 
         script_path.write_text(script_content)
 

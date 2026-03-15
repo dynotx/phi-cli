@@ -395,7 +395,7 @@ with image.imports():
     timeout=int(TIMEOUT),
     secrets=[modal.Secret.from_name("cloudsql-credentials")],
 )
-def run_af2rank(  # type: ignore[no-untyped-def]
+def run_af2rank(
     pdb_str: str,
     pdb_name: str | None = None,
     chains: str = "A",

@@ -654,7 +654,7 @@ def main(
     fasta_str = open(input_fasta).read()
     models_int: list[int] = [int(m) for m in models.split(",")] if models else [1]
 
-    result = alphafold.remote(  # type: ignore[call-arg]
+    result = alphafold.remote(
         fasta_name=Path(input_fasta).name,
         fasta_str=fasta_str,
         models=models_int,

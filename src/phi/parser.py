@@ -122,7 +122,9 @@ def _add_fetch_args(p: argparse.ArgumentParser) -> None:
 
 def _add_rfdiffusion3_args(p: argparse.ArgumentParser) -> None:
     mode = p.add_argument_group("design mode (pick one)")
-    mode.add_argument("--length", type=int, metavar="N", help="Backbone length for de novo generation")
+    mode.add_argument(
+        "--length", type=int, metavar="N", help="Backbone length for de novo generation"
+    )
     mode.add_argument("--target-pdb", metavar="FILE", help="Target PDB for binder design")
     mode.add_argument(
         "--target-pdb-gcs",
@@ -150,7 +152,9 @@ def _add_rfdiffusion3_args(p: argparse.ArgumentParser) -> None:
     )
 
     gen = p.add_argument_group("generation parameters")
-    gen.add_argument("--num-designs", type=int, default=10, metavar="N", help="Designs to generate (default: 10)")
+    gen.add_argument(
+        "--num-designs", type=int, default=10, metavar="N", help="Designs to generate (default: 10)"
+    )
     gen.add_argument(
         "--steps",
         type=int,
@@ -158,7 +162,9 @@ def _add_rfdiffusion3_args(p: argparse.ArgumentParser) -> None:
         metavar="N",
         help="Diffusion inference steps — higher improves quality (default: 50)",
     )
-    gen.add_argument("--contigs", metavar="STR", help="Contig specification string for advanced control")
+    gen.add_argument(
+        "--contigs", metavar="STR", help="Contig specification string for advanced control"
+    )
     gen.add_argument("--symmetry", metavar="C3", help="Symmetry specification (e.g., C3, D2, C5)")
 
 

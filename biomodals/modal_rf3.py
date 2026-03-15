@@ -387,11 +387,15 @@ def rf3_predict(
                             in_atom_site = True
                             # Count the column index
                             b_factor_col = sum(
-                                1 for ln in lines[: lines.index(line)] if ln.startswith("_atom_site.")
+                                1
+                                for ln in lines[: lines.index(line)]
+                                if ln.startswith("_atom_site.")
                             )
                         elif line.startswith("_atom_site.label_atom_id"):
                             atom_name_col = sum(
-                                1 for ln in lines[: lines.index(line)] if ln.startswith("_atom_site.")
+                                1
+                                for ln in lines[: lines.index(line)]
+                                if ln.startswith("_atom_site.")
                             )
                         elif in_atom_site and line.startswith("ATOM "):
                             # Data line

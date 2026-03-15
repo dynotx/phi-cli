@@ -79,9 +79,7 @@ def _put_file(signed_url: str, data: bytes | Path) -> None:
                 continue
             raise RuntimeError(f"Upload failed for {label}: {e.reason}") from e
 
-    raise RuntimeError(
-        f"Upload failed for {label} after {_UPLOAD_RETRIES} attempts"
-    ) from last_exc
+    raise RuntimeError(f"Upload failed for {label} after {_UPLOAD_RETRIES} attempts") from last_exc
 
 
 def _resolve_identity() -> None:
@@ -89,6 +87,7 @@ def _resolve_identity() -> None:
     # This prevents stale exported env vars (e.g. DYNO_ORG_ID=default-org) from
     # overriding the real identity cached after a fresh login.
     from phi.config import _load_state
+
     state = _load_state()
     if state.get("user_id"):
         os.environ["DYNO_USER_ID"] = str(state["user_id"])

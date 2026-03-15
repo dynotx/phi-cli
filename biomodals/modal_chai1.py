@@ -30,7 +30,7 @@ GPU = os.environ.get("GPU", "A100")
 TIMEOUT = int(os.environ.get("TIMEOUT", 30))
 
 
-def download_models():
+def download_models() -> None:
     """Downloads Chai-1 models by running a minimal inference.
 
     Args:

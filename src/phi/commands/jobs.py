@@ -96,6 +96,7 @@ def cmd_scores(args: argparse.Namespace) -> None:
     if results.get("download_url"):
         # Current API returns a flat { download_url, filename, ... }
         from phi.download import _fetch_url_to_str
+
         try:
             scores_content = _fetch_url_to_str(results["download_url"])
         except Exception as exc:
@@ -111,7 +112,13 @@ def cmd_scores(args: argparse.Namespace) -> None:
 
     console.print(f"\n[bold {_C_SAND}]Scores[/]  [dim](job {args.job_id[:8]}…)[/]\n")
     params = s.get("params") or {}
-    threshold_keys = {"plddt_threshold", "ptm_threshold", "iptm_threshold", "ipae_threshold", "rmsd_threshold"}
+    threshold_keys = {
+        "plddt_threshold",
+        "ptm_threshold",
+        "iptm_threshold",
+        "ipae_threshold",
+        "rmsd_threshold",
+    }
     thresholds = {k: v for k, v in params.items() if k in threshold_keys} or None
     _render_scores_table(scores_content, thresholds)
     _render_per_model_table(scores_content)

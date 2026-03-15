@@ -45,7 +45,9 @@ def _fetch_pdb_afdb(uniprot_id: str) -> str:
         with urllib.request.urlopen(api_url) as resp:
             data = json.loads(resp.read())
     except urllib.error.HTTPError as e:
-        raise ValueError(f"UniProt ID '{uniprot_id}' not found in AlphaFold DB (HTTP {e.code})") from e
+        raise ValueError(
+            f"UniProt ID '{uniprot_id}' not found in AlphaFold DB (HTTP {e.code})"
+        ) from e
     if not data:
         raise ValueError(f"AlphaFold DB returned no predictions for '{uniprot_id}'")
     pdb_url: str = data[0]["pdbUrl"]

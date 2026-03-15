@@ -49,7 +49,9 @@ def cmd_login(args: argparse.Namespace) -> None:
             content.append(f"{val}\n")
         content.append("\n")
         content.append("Tip: ", style="bold dim")
-        content.append("identity cached to .phi/state.json — no need to export env vars.\n", style="dim")
+        content.append(
+            "identity cached to .phi/state.json — no need to export env vars.\n", style="dim"
+        )
         console.print(
             Panel(content, title=f"[{_C_BLUE}]dyno phi[/]", border_style=_C_BLUE, padding=(1, 2))
         )

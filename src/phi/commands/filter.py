@@ -64,12 +64,21 @@ def cmd_filter(args: argparse.Namespace) -> None:
         _print_status(final)
         if final.get("status") == "completed":
             results: dict = {}
+            csv_content: str | None = None
             try:
                 results = _request("GET", f"/jobs/{job_id}/scores")
                 final["_results"] = results
+                if results.get("download_url"):
+                    # Current API returns a flat { download_url, filename, ... }
+                    from phi.download import _fetch_url_to_str
+                    try:
+                        csv_content = _fetch_url_to_str(results["download_url"])
+                    except Exception:
+                        pass
+                else:
+                    csv_content = _load_scores_csv(results.get("artifact_files") or [])
             except PhiApiError:
                 pass
-            csv_content = _load_scores_csv(results.get("artifact_files") or [])
             _print_filter_done(job_id, final, thresholds=params, csv_content=csv_content)
         if args.out:
             _download_job(final, args.out, all_files=args.all)

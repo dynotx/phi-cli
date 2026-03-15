@@ -4,7 +4,7 @@ import json
 from rich import box as rich_box
 from rich.table import Table
 
-from phi.api import _ensure_authenticated, _request, _resolve_identity
+from phi.api import _request, _resolve_identity
 from phi.config import POLL_INTERVAL, _save_state
 from phi.display import _C_BLUE, _C_ROSE, _C_SAND, _die, _print_dataset_ready, console
 from phi.polling import _ingest_poll
@@ -18,7 +18,6 @@ from phi.upload import (
 
 def cmd_upload(args: argparse.Namespace) -> None:
     _resolve_identity()
-    _ensure_authenticated()
 
     if getattr(args, "gcs", None):
         console.print("  External cloud storage import is not yet available.")

@@ -5,7 +5,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from phi.api import _request
-from phi.config import _base_url, _require_api_key
+from phi.config import _base_url, _require_api_key, _save_state
 from phi.display import _C_BLUE, _C_SAND, _die, console
 from phi.types import PhiApiError
 
@@ -20,6 +20,15 @@ def cmd_login(args: argparse.Namespace) -> None:
         if args.json:
             print(json.dumps(me, indent=2))
             return
+
+        # Persist identity so subsequent commands skip /auth/me
+        identity: dict = {}
+        if me.get("user_id"):
+            identity["user_id"] = me["user_id"]
+        if me.get("org_id"):
+            identity["org_id"] = me["org_id"]
+        if identity:
+            _save_state(identity)
 
         content = Text()
         content.append("✓ Logged in\n\n", style=f"bold {_C_SAND}")
@@ -40,15 +49,7 @@ def cmd_login(args: argparse.Namespace) -> None:
             content.append(f"{val}\n")
         content.append("\n")
         content.append("Tip: ", style="bold dim")
-        content.append("cache these to skip /auth/me on uploads:\n", style="dim")
-        content.append(
-            f"  export DYNO_USER_ID={me.get('user_id', 'YOUR_USER_ID')}\n",
-            style=f"dim {_C_BLUE}",
-        )
-        content.append(
-            f"  export DYNO_ORG_ID={me.get('org_id', 'YOUR_ORG_ID')}",
-            style=f"dim {_C_BLUE}",
-        )
+        content.append("identity cached to .phi/state.json — no need to export env vars.\n", style="dim")
         console.print(
             Panel(content, title=f"[{_C_BLUE}]dyno phi[/]", border_style=_C_BLUE, padding=(1, 2))
         )

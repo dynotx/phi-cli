@@ -23,6 +23,7 @@ env/
 htmlcov/
 
 # Phi runtime state
+.phi/
 .phi-state.json
 results/
 research.md

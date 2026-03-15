@@ -15,7 +15,8 @@ NON_TERMINAL_STATUSES = {"pending", "submitted", "running"}
 INGEST_TERMINAL = {"READY", "FAILED"}
 UPLOAD_BATCH_SIZE = 50
 UPLOAD_WORKERS = 8
-STATE_FILE = Path(".phi-state.json")
+STATE_DIR = Path(".phi")
+STATE_FILE = STATE_DIR / "state.json"
 
 _UPLOAD_RETRIES = 3
 _UPLOAD_RETRY_BASE = 2.0
@@ -38,6 +39,7 @@ def _load_state() -> dict[str, object]:
 def _save_state(updates: dict) -> None:
     state = _load_state()
     state.update(updates)
+    STATE_DIR.mkdir(exist_ok=True)
     STATE_FILE.write_text(json.dumps(state, indent=2) + "\n")
 
 

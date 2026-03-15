@@ -312,9 +312,20 @@ def _print_filter_done(
 
     if (passed is None or failed is None) and csv_content:
         passed, failed = _count_from_csv(csv_content)
-    else:
-        passed = 0 if passed is None else passed
-        failed = 0 if failed is None else failed
+
+    if passed is None or failed is None:
+        # Fall back to counting output_files by artifact_type
+        output_files: list[dict] = final.get("output_files") or []
+        if output_files:
+            passed = passed if passed is not None else sum(
+                1 for f in output_files if f.get("artifact_type") == "passed_designs"
+            )
+            failed = failed if failed is not None else sum(
+                1 for f in output_files if f.get("artifact_type") == "failed_designs"
+            )
+
+    passed = 0 if passed is None else passed
+    failed = 0 if failed is None else failed
 
     total = passed + failed
 

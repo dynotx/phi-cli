@@ -92,7 +92,17 @@ def cmd_scores(args: argparse.Namespace) -> None:
     except PhiApiError as e:
         _die(f"Could not fetch results: {e}")
 
-    scores_content = _load_scores_csv(results.get("artifact_files") or [])
+    scores_content: str | None = None
+    if results.get("download_url"):
+        # Current API returns a flat { download_url, filename, ... }
+        from phi.download import _fetch_url_to_str
+        try:
+            scores_content = _fetch_url_to_str(results["download_url"])
+        except Exception as exc:
+            _die(f"Could not download scores CSV: {exc}")
+    else:
+        # Legacy format: { artifact_files: [...] }
+        scores_content = _load_scores_csv(results.get("artifact_files") or [])
 
     if not scores_content:
         console.print(f"[dim]No scores/metrics found for job {args.job_id}.[/]")
@@ -120,6 +130,15 @@ def cmd_download(args: argparse.Namespace) -> None:
         _die(f"Job is '{s.get('status')}' — can only download completed jobs")
     try:
         results = _request("GET", f"/jobs/{args.job_id}/scores")
+        if results.get("download_url") and not results.get("artifact_files"):
+            # Flat format: normalise into artifact_files so _download_job can use it
+            results["artifact_files"] = [
+                {
+                    "name": results.get("filename", "scores.csv"),
+                    "artifact_type": "csv",
+                    "download_url": results["download_url"],
+                }
+            ]
         s["_results"] = results
     except PhiApiError:
         pass

@@ -1,0 +1,11 @@
+{
+  "name": "dyno-phi",
+  "description": "Claude Code skill for the dyno-phi protein design CLI. Design binders with RFDiffusion3 or BoltzGen, run folding/inverse-folding pipelines, filter and score candidates, and download results — all from natural language.",
+  "version": "0.1.1",
+  "author": {
+    "name": "Dyno Therapeutics"
+  },
+  "homepage": "https://github.com/dynotx/phi-cli",
+  "repository": "https://github.com/dynotx/phi-cli",
+  "license": "MIT"
+}

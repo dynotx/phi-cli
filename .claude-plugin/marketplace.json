@@ -1,0 +1,26 @@
+{
+  "name": "phi-cli",
+  "owner": {
+    "name": "Dyno Therapeutics",
+    "email": "engineering@dynotx.com"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for the dyno protein design platform",
+    "pluginRoot": "./phi-plugin"
+  },
+  "plugins": [
+    {
+      "name": "dyno-phi",
+      "source": "./phi-plugin",
+      "description": "Claude Code skill for the dyno-phi protein design CLI. Design binders, run folding pipelines, filter and score candidates.",
+      "version": "0.1.1",
+      "author": {
+        "name": "Dyno Therapeutics"
+      },
+      "homepage": "https://github.com/dynotx/phi-cli",
+      "repository": "https://github.com/dynotx/phi-cli",
+      "license": "MIT",
+      "keywords": ["protein-design", "binder-design", "bioinformatics", "alphafold", "rfdiffusion"]
+    }
+  ]
+}

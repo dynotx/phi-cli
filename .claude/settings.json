@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "phi-cli": {
+      "source": {
+        "source": "github",
+        "repo": "dynotx/phi-cli"
+      }
+    }
+  }
+}

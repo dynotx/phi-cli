@@ -30,7 +30,7 @@ Results and scores are viewable in the web dashboard at
 pip install dyno-phi
 ```
 
-Requires Python ≥ 3.11.
+Requires Python ≥ 3.9.
 
 ---
 

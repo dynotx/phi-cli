@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-17
+
+### Added
+- Dashboard URL (`design.dynotx.com/dashboard/datasets/<dataset_id>`) printed after every command that sets an active dataset
+- API key cached to `.phi/state.json` on first use — no need to re-export `DYNO_API_KEY` in subsequent sessions
+- `phi filter` dataset ready panel now shows a prominent **Next step: `phi filter`** above detailed job options
+
+### Changed
+- Python compatibility widened from 3.11-only to **3.9–3.13**
+- Filter jobs now named `job-filter_pipeline-<hash>` (was `job-design_pipeline-<hash>`)
+- `phi login` panel no longer displays `endpoint`, `user_id`, or `org_id`
+- `DYNO_API_KEY` missing error message now points to `https://design.dynotx.com/dashboard/settings`
+- Removed generative model commands (`phi design`, `phi boltzgen`) from user-facing documentation
+- Removed Biomodals section from README
+- Fixed repository URLs (`dyno-tx` → `dynotx`)
+
 ## [0.1.0] - 2024-03-01
 
 ### Added

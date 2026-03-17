@@ -1,6 +1,6 @@
 # Phi CLI Reference
 
-**`phi`** is the command-line interface for the dyno protein design platform.
+**`phi`** is the command-line interface for the dyno protein analysis platform.
 Submit and monitor computational biology jobs, manage datasets, run structure
 prediction and inverse-folding pipelines, and download results — all from your
 terminal.
@@ -23,8 +23,6 @@ terminal.
   - [phi datasets](#phi-datasets)
   - [phi dataset](#phi-dataset)
   - [phi ingest-session](#phi-ingest-session)
-  - [phi design / rfdiffusion3](#phi-design--rfdiffusion3)
-  - [phi boltzgen](#phi-boltzgen)
   - [phi folding / esmfold](#phi-folding--esmfold)
   - [phi complex_folding / alphafold](#phi-complex_folding--alphafold)
   - [phi inverse_folding / proteinmpnn](#phi-inverse_folding--proteinmpnn)
@@ -50,23 +48,14 @@ terminal.
 pip install dyno-phi
 ```
 
-For local biomodal development (deploying Modal GPU apps):
-
-```bash
-pip install "dyno-phi[biomodals]"
-```
-
-**Set your API key** (obtain from Settings → API keys in the dyno web app):
+**Set your API key** (obtain from **Settings → API keys** at
+`http://localhost:3000/dashboard/settings`):
 
 ```bash
 export DYNO_API_KEY=ak_...
 ```
 
-Optionally override the API base URL:
-
-```bash
-export DYNO_API_BASE_URL=https://api.dynotx.com
-```
+The key is cached to `.phi/state.json` after first use.
 
 Verify your connection:
 
@@ -120,8 +109,6 @@ Active: dataset [d7c3a1b2-...] · job [cb4553f5-...]
 | `phi datasets` | — | List your datasets |
 | `phi dataset` | — | Show details for a single dataset |
 | `phi ingest-session` | — | Check the status of an ingest session |
-| `phi design` | `rfdiffusion3` | Backbone generation — binder design, de novo, motif scaffolding |
-| `phi boltzgen` | — | All-atom generative design from a YAML spec |
 | `phi folding` | `esmfold` | Fast single-sequence structure prediction (ESMFold) |
 | `phi complex_folding` | `alphafold` | Monomer or multimer structure prediction (AlphaFold2) |
 | `phi inverse_folding` | `proteinmpnn` | Sequence design via inverse folding (ProteinMPNN) |
@@ -294,125 +281,6 @@ phi ingest-session SESSION_ID [--json]
 | Flag | Description |
 |---|---|
 | `--json` | Print raw JSON |
-
----
-
-### phi design / rfdiffusion3
-
-Generate protein backbones using **RFdiffusion3**. Supports binder design
-(targeting a receptor), de novo backbone generation, and motif scaffolding.
-Runtime: ~2–5 min per design.
-
-```
-phi design [mode options] [binder options] [generation options] [job options]
-```
-
-**Design mode (pick one):**
-
-| Flag | Description |
-|---|---|
-| `--target-pdb FILE` | Target PDB for binder design |
-| `--target-pdb-gcs URI` | Cloud storage URI to target PDB (`gs://…`) |
-| `--length N` | Backbone length for de novo generation (no target) |
-| `--motif-pdb FILE` | Motif PDB for scaffolding |
-| `--motif-pdb-gcs URI` | Cloud storage URI to motif PDB (`gs://…`) |
-
-**Binder design options:**
-
-| Flag | Description |
-|---|---|
-| `--target-chain CHAIN` | Target chain ID (e.g., `A`) |
-| `--hotspots A45,A67` | Comma-separated hotspot residues for interface design |
-| `--motif-residues 10-20,45-55` | Comma-separated motif residue ranges |
-
-**Generation parameters:**
-
-| Flag | Default | Description |
-|---|---|---|
-| `--num-designs N` | `10` | Number of backbone designs to generate |
-| `--steps N` | `50` | Diffusion inference steps — higher improves quality |
-| `--contigs STR` | — | Contig specification string for advanced control |
-| `--symmetry C3` | — | Symmetry specification (e.g., `C3`, `D2`, `C5`) |
-
-**Job options** (shared with all model commands):
-
-| Flag | Default | Description |
-|---|---|---|
-| `--run-id ID` | — | Optional run label |
-| `--wait` | on | Poll until job completes |
-| `--no-wait` | — | Return immediately after submission |
-| `--out DIR` | — | Download results to this directory when done |
-| `--json` | — | Output raw JSON |
-
-**Examples:**
-```bash
-# Binder design targeting a receptor
-phi design --target-pdb target.pdb --hotspots A45,A67 --num-designs 50
-
-# With uploaded target (GCS URI from phi fetch --upload)
-phi design --target-pdb-gcs gs://bucket/target.pdb --hotspots A45,A67 --num-designs 100
-
-# De novo backbone generation
-phi design --length 80 --num-designs 20
-
-# Motif scaffolding
-phi design --motif-pdb motif.pdb --motif-residues 10-20,45-55 --num-designs 30
-
-# Symmetric design
-phi design --length 120 --symmetry C3 --num-designs 10
-```
-
----
-
-### phi boltzgen
-
-All-atom generative binder design using **BoltzGen**. Takes a YAML design
-specification and runs diffusion + inverse folding. Supports proteins, peptides,
-antibodies, nanobodies, and small molecule binders.
-Runtime: ~10–20 min.
-
-```
-phi boltzgen (--yaml FILE | --yaml-gcs URI) [options]
-```
-
-**Input (pick one):**
-
-| Flag | Description |
-|---|---|
-| `--yaml FILE` | Local YAML design specification file |
-| `--yaml-gcs URI` | Cloud storage URI to YAML file (`gs://…`) |
-| `--structure-gcs URI` | Cloud storage URI to a structure file referenced in the YAML |
-
-**Generation parameters:**
-
-| Flag | Default | Description |
-|---|---|---|
-| `--protocol PROTOCOL` | `protein-anything` | Design protocol. Choices: `protein-anything`, `peptide-anything`, `protein-small_molecule`, `antibody-anything`, `nanobody-anything`, `protein-redesign` |
-| `--num-designs N` | `10` | Intermediate designs to generate. Use `10,000–60,000` for production campaigns |
-| `--budget N` | `num_designs // 10` | Final diversity-optimized design count |
-| `--boltzgen-steps STEPS` | — | Specific pipeline steps, space-separated (e.g., `design inverse_folding folding`). Omit to run full pipeline |
-
-**Inverse folding only:**
-
-| Flag | Description |
-|---|---|
-| `--only-inverse-fold` | Run inverse folding on an existing structure YAML — skips backbone design |
-| `--inverse-fold-num-sequences N` | Sequences per design when using `--only-inverse-fold` (default: `2`) |
-
-**Examples:**
-```bash
-# Full protein binder design pipeline
-phi boltzgen --yaml design.yaml --protocol protein-anything --num-designs 10
-
-# Peptide binder design
-phi boltzgen --yaml peptide.yaml --protocol peptide-anything --num-designs 50
-
-# Production-scale campaign
-phi boltzgen --yaml binder.yaml --num-designs 20000 --budget 200
-
-# Run only inverse folding on existing designs
-phi boltzgen --yaml structures.yaml --only-inverse-fold --inverse-fold-num-sequences 4
-```
 
 ---
 
@@ -878,36 +746,20 @@ rather than signal and results in better-calibrated confidence scores.
 
 ## Workflows
 
-### Binder design — full pipeline
+### Score a batch of structures — full pipeline
 
 ```bash
 # 1. Fetch and prepare target
 phi fetch --pdb 4ZQK --chain A --residues 56-290 --out target.pdb
 
-# 2. Generate backbones
-phi design --target-pdb target.pdb --hotspots A45,A67 --num-designs 50
+# 2. Upload structures for batch validation
+phi upload ./designs/
 
-# 3. Upload backbones for batch validation
-phi upload --dir ./rfdiffusion_outputs/ --file-type pdb
-
-# 4. Run full filter pipeline
+# 3. Run full filter pipeline
 phi filter --preset default --wait --out ./results/
 
-# 5. Review scores
+# 4. Review scores (also linked from dashboard)
 phi scores --top 30
-```
-
-### BoltzGen binder design
-
-```bash
-# 1. Fetch target and upload to get GCS URI
-phi fetch --uniprot Q9NZQ7 --trim-low-confidence 70 --upload
-
-# 2. Create YAML spec referencing the GCS URI, then run
-phi boltzgen --yaml design.yaml --protocol protein-anything --num-designs 10000
-
-# 3. Download top designs
-phi download --out ./boltzgen_results/
 ```
 
 ### Validate a batch of existing sequences

@@ -146,11 +146,15 @@ def _require_api_key() -> str:
                         if key:
                             break
     if not key:
+        # Check state.json as a final fallback
+        key = str(_load_state().get("api_key", "")) or None
+    if not key:
         _die(
             "DYNO_API_KEY is not set.\n"
-            "  1. Open https://api.dyno-agents.app and navigate to Settings → API keys\n"
-            "  2. Create an API key\n"
+            "  1. Open https://design.dynotx.com/dashboard/settings → API keys\n"
+            "  2. Create and copy an API key\n"
             "  3. Run: export DYNO_API_KEY=your_key"
         )
     _CACHED_API_KEY = key
+    _save_state({"api_key": key})
     return key

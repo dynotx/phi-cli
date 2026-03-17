@@ -66,6 +66,9 @@ def _print_state_footer() -> None:
         parts.append(f"job [{_C_BLUE}]{job_id}[/{_C_BLUE}]")
 
     console.print(f"[dim]Active: {' · '.join(parts)}[/dim]")
+    if dataset_id:
+        dashboard_url = f"https://design.dynotx.com/dashboard/datasets/{dataset_id}"
+        console.print(f"[dim]Dashboard: [link={dashboard_url}]{dashboard_url}[/link][/dim]")
 
 
 def main() -> None:

@@ -1,26 +1,30 @@
 ---
 name: phi
-description: "Run phi CLI commands for the dyno protein design platform: fetch structures, design binders (RFDiffusion3, BoltzGen), run folding/inverse-folding pipelines (ESMFold, AlphaFold2, ProteinMPNN), filter and score candidates, download results, and run research queries. Use when the user asks about phi commands, binder design, uploading PDB/CIF files, or scoring designs."
+description: "Run phi CLI commands for the dyno protein analysis platform: fetch structures, run folding/inverse-folding pipelines (ESMFold, AlphaFold2, ProteinMPNN), filter and score candidates, download results, and run research queries. Use when the user asks about phi commands, uploading PDB/CIF files, or scoring designs."
 argument-hint: "[command] [options]"
 allowed-tools: Bash(phi *)
 ---
 
 # phi CLI skill
 
-`phi` is the command-line interface for **dyno-phi**, a protein design platform.
+`phi` is the command-line interface for **dyno-phi**, a protein structure
+analysis and scoring platform.
+
 Install it from PyPI:
 
 ```bash
 pip install dyno-phi
 ```
 
-Configure with a single environment variable (or a `.env` file at the repo root):
+Configure with a single environment variable (or via `.phi/state.json` if
+already cached from a previous session):
 
 ```bash
-export DYNO_API_KEY=sk-...
-# Optional — defaults to the hosted API
-export DYNO_API_BASE_URL=https://api.dynotx.com
+export DYNO_API_KEY=ak_...
 ```
+
+The API key is also stored in `.phi/state.json` after first use — check there
+if you're unsure whether one is already configured.
 
 Verify connectivity:
 
@@ -28,12 +32,20 @@ Verify connectivity:
 phi login
 ```
 
+After every command the CLI prints the active dataset and a direct link to the
+web dashboard:
+
+```
+Active: dataset [<dataset_id>] · job [<job_id>]
+Dashboard: https://design.dynotx.com/dashboard/datasets/<dataset_id>
+```
+
 ---
 
 ## End-to-end workflow
 
 ```
-research → fetch → design → filter → download
+research → fetch → upload → filter → download
 ```
 
 Each step is optional depending on your starting point.
@@ -64,8 +76,8 @@ phi notes <DATASET_ID>
 
 ## 2. Fetch and prepare structures
 
-`phi fetch` downloads a structure from RCSB PDB or the AlphaFold DB, optionally crops
-it by chain or residue range, and uploads it to a new dataset ready for design.
+`phi fetch` downloads a structure from RCSB PDB or the AlphaFold DB, optionally
+crops it by chain or residue range, and uploads it to a new dataset.
 
 ```bash
 # Fetch a PDB entry (all chains)
@@ -77,69 +89,13 @@ phi fetch --pdb 6M0J --chain A --start 1 --end 200
 # Fetch an AlphaFold DB prediction and trim low-confidence regions (pLDDT < 70)
 phi fetch --uniprot P12345 --plddt-cutoff 70
 
-# Upload the prepared structure to a new dataset for use with phi design
+# Upload the prepared structure to a new dataset
 phi fetch --pdb 6M0J --chain A --upload
 ```
 
-After `--upload`, a new `dataset_id` is cached. The output prints the full `phi design`
-command ready to run.
-
 ---
 
-## 3. Design binders
-
-### RFDiffusion3 (backbone diffusion — recommended default)
-
-```bash
-# Alias: phi design
-phi design --fasta target.fasta --hotspots A25,A30,A35 --num-designs 50 --wait
-
-# Specify binder length range
-phi design --fasta target.fasta --binder-min-length 60 --binder-max-length 100 --num-designs 50 --wait
-
-# Use a structure file from a cached dataset
-phi design --dataset-id <ID> --hotspots A25,A30 --num-designs 50 --wait
-
-# Specify partial diffusion steps (for motif scaffolding)
-phi rfdiffusion3 --fasta target.fasta --hotspots A25,A30 --partial-diffusion-steps 10 --num-designs 50 --wait
-```
-
-### BoltzGen (all-atom diffusion — for high-quality production runs)
-
-```bash
-# Full pipeline from a design YAML
-phi boltzgen --yaml design.yaml --protocol protein-anything --num-designs 50 --wait
-
-# Specify a budget (final diversity-filtered set size)
-phi boltzgen --yaml design.yaml --num-designs 1000 --budget 50 --wait
-
-# Run only specific pipeline steps
-phi boltzgen --yaml design.yaml --boltzgen-steps "design inverse_folding" --num-designs 50 --wait
-
-# Inverse folding only (resequence an existing backbone from a YAML spec)
-phi boltzgen --yaml backbone.yaml --only-inverse-fold --inverse-fold-num-sequences 10 --wait
-
-# Use a structure already uploaded to cloud storage
-phi boltzgen --yaml design.yaml --yaml-gcs gs://bucket/design.yaml --structure-gcs gs://bucket/target.cif --wait
-```
-
-**BoltzGen protocols:**
-
-| Protocol | Use |
-|---|---|
-| `protein-anything` | Design proteins to bind proteins or peptides (default) |
-| `peptide-anything` | Design (cyclic) peptides to bind proteins |
-| `protein-small_molecule` | Design proteins to bind small molecules |
-| `antibody-anything` | Design antibody CDRs |
-| `nanobody-anything` | Design nanobody CDRs |
-| `protein-redesign` | Redesign or optimize existing proteins |
-
-**BoltzGen pipeline steps** (pass to `--boltzgen-steps`):
-`design`, `inverse_folding`, `folding`, `design_folding`, `affinity`, `analysis`, `filtering`
-
----
-
-## 4. Upload an existing design set
+## 3. Upload an existing structure set
 
 ```bash
 # Upload a directory of PDB / CIF files (auto-expands directories)
@@ -154,9 +110,9 @@ phi use <DATASET_ID>
 
 ---
 
-## 5. Run the filter pipeline
+## 4. Run the filter pipeline
 
-`phi filter` scores binder candidates end-to-end:
+`phi filter` scores candidates end-to-end:
 inverse folding (ProteinMPNN) → folding (ESMFold) → complex folding (AlphaFold2) → score.
 
 ```bash
@@ -195,7 +151,7 @@ phi filter --preset relaxed --msa-tool single_sequence --wait
 
 ---
 
-## 6. Run individual tools
+## 5. Run individual tools
 
 All tool commands accept `--dataset-id ID` or use the cached dataset. Add `--wait` to
 poll until completion.
@@ -234,7 +190,7 @@ phi boltz --dataset-id <ID> --recycles 3 --wait
 
 ---
 
-## 7. Download results
+## 6. Download results
 
 ```bash
 # Download to ./results (default) — key files: structures/, scores/
@@ -254,7 +210,7 @@ phi download --all
 
 ---
 
-## 8. View scores
+## 7. View scores
 
 ```bash
 # Display scores table for the last job
@@ -294,9 +250,9 @@ phi use <DATASET_ID>            # Cache as the current working dataset
 ## Tips
 
 ### State caching
-`phi use <DATASET_ID>` writes to `.phi-state.json` in the current directory.
+`phi use <DATASET_ID>` writes to `.phi/state.json` in the current directory.
 `phi filter` also caches `last_job_id`, so `phi download` and `phi scores` work
-without arguments after a filter run.
+without arguments after a filter run. The API key is also cached here.
 
 ### Polling interval
 ```bash
@@ -320,13 +276,12 @@ phi filter --preset default --wait --poll-interval 10
 | `folding` | ESMFold | Fast single-sequence folding |
 | `complex_folding` | AlphaFold2 multimer | Binder–target complex |
 | `inverse_folding` | ProteinMPNN | Sequence design from backbone |
-| `design` | RFDiffusion3 | Backbone diffusion (default) |
 
 ---
 
 ## Common workflows
 
-### Research-guided design
+### Research-guided scoring
 ```bash
 phi research \
   --question "Which residues on EGFR domain III are critical for antibody binding?" \
@@ -334,13 +289,11 @@ phi research \
 
 phi fetch --pdb 1IVO --chain A --start 300 --end 500 --upload
 
-phi design --hotspots A310,A315,A320 --num-designs 100 --wait
-
 phi filter --preset relaxed --msa-tool single_sequence --wait --out ./results
 phi scores
 ```
 
-### Upload existing designs and score
+### Upload existing structures and score
 ```bash
 phi upload ./designs/
 phi filter --preset default --wait --out ./results
@@ -350,23 +303,4 @@ phi scores
 ### Relax thresholds for novel de novo binders
 ```bash
 phi filter --preset relaxed --msa-tool single_sequence --wait
-```
-
-### BoltzGen inverse folding only (resequence a backbone)
-```bash
-phi boltzgen \
-  --yaml backbone_spec.yaml \
-  --only-inverse-fold \
-  --inverse-fold-num-sequences 10 \
-  --wait
-```
-
-### Full BoltzGen production run
-```bash
-phi boltzgen \
-  --yaml design_spec.yaml \
-  --protocol protein-anything \
-  --num-designs 10000 \
-  --budget 100 \
-  --wait
 ```

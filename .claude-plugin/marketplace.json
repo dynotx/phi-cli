@@ -12,7 +12,7 @@
     {
       "name": "dyno-phi",
       "source": "./phi-plugin",
-      "description": "Claude Code skill for the dyno-phi protein design CLI. Design binders, run folding pipelines, filter and score candidates.",
+      "description": "Claude Code skill for the dyno-phi protein analysis CLI. Run folding/inverse-folding pipelines, filter and score candidates.",
       "version": "0.1.1",
       "author": {
         "name": "Dyno Therapeutics"
@@ -20,7 +20,7 @@
       "homepage": "https://github.com/dynotx/phi-cli",
       "repository": "https://github.com/dynotx/phi-cli",
       "license": "MIT",
-      "keywords": ["protein-design", "binder-design", "bioinformatics", "alphafold", "rfdiffusion"]
+      "keywords": ["protein-analysis", "bioinformatics", "alphafold", "esmfold", "proteinmpnn"]
     }
   ]
 }

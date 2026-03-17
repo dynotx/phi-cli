@@ -1,10 +1,13 @@
 # dyno-phi
 
-**Phi CLI and biomodals for the dyno protein design platform.**
+**Phi CLI for the dyno protein structure analysis platform.**
 
-`phi` is the command-line interface for submitting protein design jobs, managing
-datasets, running structure prediction and inverse-folding pipelines, and
-downloading results from the dyno API.
+`phi` is the command-line interface for uploading protein structures, running
+structure prediction and inverse-folding pipelines, filtering and scoring
+candidates, and downloading results from the dyno API.
+
+Results and scores are viewable in the web dashboard at
+`design.dynotx.com/dashboard/datasets/<dataset_id>`.
 
 ---
 
@@ -16,7 +19,6 @@ downloading results from the dyno API.
 - [Command reference](#command-reference)
 - [Filter presets](#filter-presets)
 - [State caching](#state-caching)
-- [Biomodals](#biomodals)
 - [Claude Code skill](#claude-code-skill)
 - [Development](#development)
 
@@ -28,29 +30,21 @@ downloading results from the dyno API.
 pip install dyno-phi
 ```
 
-For local biomodal development (deploying Modal GPU apps):
-
-```bash
-pip install "dyno-phi[biomodals]"
-```
-
 Requires Python ≥ 3.11.
 
 ---
 
 ## Authentication
 
-Create an API key at **Settings → API keys** in the dyno web app, then export it:
+Create an API key at **Settings → API keys** in the dyno web app
+(`https://design.dynotx.com/dashboard/settings`), then export it:
 
 ```bash
 export DYNO_API_KEY=ak_...
 ```
 
-Optionally override the API base URL (defaults to the hosted API):
-
-```bash
-export DYNO_API_BASE_URL=https://api.dynotx.com
-```
+The key is cached to `.phi/state.json` on first use so you don't need to
+re-export it in future sessions.
 
 Verify your connection:
 
@@ -75,7 +69,7 @@ phi complex_folding --fasta binder_target.fasta
 phi inverse_folding --pdb design.pdb --num-sequences 20
 ```
 
-### Batch binder design workflow
+### Batch scoring workflow
 
 ```bash
 # 1. Upload a directory of PDB/CIF files
@@ -83,6 +77,7 @@ phi upload ./designs/
 
 # Output:
 #   dataset_id  d7c3a1b2-...
+#   Dashboard:  https://design.dynotx.com/dashboard/datasets/d7c3a1b2-...
 #   Run a job against this dataset:
 #     phi folding          --dataset-id d7c3a1b2-...
 #     phi complex_folding  --dataset-id d7c3a1b2-...
@@ -96,10 +91,12 @@ phi filter --dataset-id d7c3a1b2-... --preset default --wait
 phi download --out ./results/
 ```
 
-After each command, `phi` prints the active dataset and job IDs:
+After each command, `phi` prints the active dataset and job IDs and a link to
+the dashboard:
 
 ```
 Active: dataset [d7c3a1b2-...] · job [cb4553f5-...]
+Dashboard: https://design.dynotx.com/dashboard/datasets/d7c3a1b2-...
 ```
 
 ---
@@ -113,9 +110,7 @@ Active: dataset [d7c3a1b2-...] · job [cb4553f5-...]
 | `phi fetch` | — | Download a structure from RCSB PDB or AlphaFold DB, crop, and optionally upload |
 | `phi datasets` | — | List datasets |
 | `phi dataset` | — | Show dataset details |
-| `phi use <dataset_id>` | — | Set active dataset (cached to `.phi-state.json`) |
-| `phi design` | `rfdiffusion3` | Backbone diffusion — generate binder scaffolds (RFDiffusion3) |
-| `phi boltzgen` | — | All-atom binder design (BoltzGen); supports `--only-inverse-fold` |
+| `phi use <dataset_id>` | — | Set active dataset (cached to `.phi/state.json`) |
 | `phi folding` | `esmfold` | Single-sequence structure prediction (ESMFold) |
 | `phi complex_folding` | `alphafold` | Multi-chain complex prediction (AlphaFold2 multimer) |
 | `phi inverse_folding` | `proteinmpnn` | Sequence design via inverse folding (ProteinMPNN) |
@@ -155,7 +150,7 @@ design against configurable thresholds.
 | pLDDT | ≥ 0.80 | ≥ 0.80 | ESMFold per-residue confidence |
 | pTM | ≥ 0.55 | ≥ 0.45 | Global TM-score proxy (ESMFold) |
 | ipTM | ≥ 0.50 | ≥ 0.50 | Interface pTM (AF2 multimer) |
-| iPAE | ≤ 10.85 Å | ≤ 12.4 Å | AF2 interface PAE in Å (BindCraft equiv: 0.35×31 / 0.40×31) |
+| iPAE | ≤ 10.85 Å | ≤ 12.4 Å | AF2 interface PAE in Å |
 | RMSD | ≤ 3.5 Å | ≤ 4.5 Å | Backbone RMSD vs. reference |
 
 Override any threshold with an explicit flag:
@@ -168,8 +163,9 @@ phi filter --dataset-id ... --plddt 0.75 --iptm 0.45
 
 ## State caching
 
-`phi` caches the most recently used dataset ID and job ID in `.phi-state.json`
-so you don't need to pass `--dataset-id` or `job_id` repeatedly:
+`phi` caches the most recently used dataset ID, job ID, and API key in
+`.phi/state.json` so you don't need to pass `--dataset-id` or re-export your
+key repeatedly:
 
 ```bash
 phi use d7c3a1b2-...         # set active dataset
@@ -178,68 +174,22 @@ phi scores                   # uses cached job
 phi download --out ./results # uses cached job
 ```
 
----
+The dashboard URL for the active dataset is printed after every command:
 
-## Biomodals
-
-The `biomodals/` directory contains self-contained [Modal](https://modal.com)
-GPU apps for every model used in the platform. They can be deployed
-independently and are the same apps used in production.
-
-### Prerequisites
-
-```bash
-pip install "dyno-phi[biomodals]"
-modal token new          # authenticate with Modal
 ```
-
-Each biomodal requires platform credentials configured as Modal secrets.
-Contact your Dyno administrator for the required secret names and values.
-
-### Deploying
-
-```bash
-modal deploy biomodals/modal_alphafold.py
-modal deploy biomodals/modal_esmfold.py
-modal deploy biomodals/modal_proteinmpnn.py
+Dashboard: https://design.dynotx.com/dashboard/datasets/d7c3a1b2-...
 ```
-
-### Available biomodals
-
-| File | Tool | Description |
-|---|---|---|
-| `modal_alphafold.py` | AlphaFold2 | Monomer + multimer structure prediction (ColabFold MSA) |
-| `modal_esmfold.py` | ESMFold | Fast single-sequence structure prediction |
-| `modal_proteinmpnn.py` | ProteinMPNN | Inverse folding — design sequences for a backbone |
-| `modal_boltz.py` | Boltz-1 | Open-source biomolecular structure prediction |
-| `modal_boltzgen.py` | BoltzGen | Diffusion-based binder design |
-| `modal_bindcraft.py` | BindCraft | End-to-end hallucination binder design |
-| `modal_chai1.py` | Chai-1 | Foundation model for molecular structure |
-| `modal_rfdiffusion3.py` | RFdiffusion | Backbone generation for binder scaffolds |
-| `modal_rf3.py` | RF3 | RoseTTAFold3 structure prediction |
-| `modal_esm2_predict_masked.py` | ESM2 | Protein language model embeddings |
-| `modal_ligandmpnn.py` | LigandMPNN | Ligand-aware inverse folding |
-| `modal_align_structures.py` | Biotite | Structure alignment and RMSD calculation |
-| `modal_af2rank.py` | AF2Rank | Rank binders using AF2 confidence metrics |
-| `modal_rso.py` | RSO | Rosetta side-chain optimization |
-| `modal_tm_score.py` | TMscore | TM-score calculation |
 
 ---
 
 ## Claude Code skill
 
-The `phi` skill is bundled at `.claude/skills/phi/SKILL.md` and is automatically
+The `phi` skill is bundled at `skills/phi/SKILL.md` and is automatically
 available when you open this repo in Claude Code (Cursor or the `claude` CLI).
 No installation needed — just open the project and ask naturally:
 
 ```
-Upload the PDB files in ./examples/binders/ and run the default filter pipeline.
-```
-
-Or invoke directly with the slash command:
-
-```
-/phi upload ./examples/binders/
+Upload the PDB files in ./examples/ and run the default filter pipeline.
 ```
 
 **To make the skill available in all your projects** (outside this repo):
@@ -254,13 +204,13 @@ cp skills/phi/SKILL.md ~/.claude/skills/phi/SKILL.md
 ## Development
 
 ```bash
-git clone https://github.com/dyno-tx/phi-cli
+git clone https://github.com/dynotx/phi-cli
 cd phi-cli
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
 # Lint
-ruff check src/ biomodals/
+ruff check src/
 
 # Type check
 mypy src/phi/

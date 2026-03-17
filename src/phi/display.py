@@ -284,13 +284,15 @@ def _print_dataset_ready(dataset_id: str | None, artifact_count: int) -> None:
     content.append(f"{dataset_id}\n", style=f"bold {_C_BLUE}")
     content.append("artifact_count  ", style="dim")
     content.append(f"{artifact_count}\n\n")
-    content.append("Run a job against this dataset:\n", style="bold")
-    content.append(f"  phi folding          --dataset-id {dataset_id}\n", style=_C_SAND)
-    content.append(f"  phi complex_folding  --dataset-id {dataset_id}\n", style=_C_SAND)
-    content.append(f"  phi inverse_folding  --dataset-id {dataset_id}\n", style=_C_SAND)
+    content.append("Next step:\n", style="bold")
+    content.append("  phi filter\n\n", style=f"bold {_C_SAND}")
+    content.append("Run a specific job:\n", style="bold dim")
+    content.append(f"  phi folding          --dataset-id {dataset_id}\n", style="dim")
+    content.append(f"  phi complex_folding  --dataset-id {dataset_id}\n", style="dim")
+    content.append(f"  phi inverse_folding  --dataset-id {dataset_id}\n", style="dim")
     content.append(
         f"  phi filter           --dataset-id {dataset_id} --preset default --wait",
-        style=_C_SAND,
+        style="dim",
     )
     console.print(
         Panel(

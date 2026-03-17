@@ -1,14 +1,14 @@
 # dyno-phi Claude Code Plugin
 
-A Claude Code plugin that gives Claude the ability to run `phi` CLI commands for the **dyno protein design platform**.
+A Claude Code plugin that gives Claude the ability to run `phi` CLI commands for the **dyno protein analysis platform**.
 
 ## What it does
 
 Installs the `/dyno-phi:phi` skill, which lets Claude:
 
-- Run the full binder design workflow (research → fetch → design → filter → download)
-- Submit jobs to RFDiffusion3, BoltzGen, ESMFold, AlphaFold2, and ProteinMPNN
-- Score and filter design candidates using pLDDT, pTM, ipTM, iPAE, and RMSD
+- Run the full scoring workflow (research → fetch → upload → filter → download)
+- Submit jobs to ESMFold, AlphaFold2, and ProteinMPNN
+- Score and filter candidates using pLDDT, pTM, ipTM, iPAE, and RMSD
 - Manage datasets and jobs
 
 ## Prerequisites
@@ -40,7 +40,7 @@ Then use the skill in Claude Code:
 Or just describe what you want — Claude will invoke the skill automatically:
 
 ```
-Design 50 binders for PD-L1 using hotspots A115, A120, A125
+Upload the PDB files in ./designs/ and run the default filter pipeline.
 ```
 
 ## Skill invocation

@@ -5,7 +5,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from phi.api import _request
-from phi.config import _base_url, _require_api_key, _save_state
+from phi.config import _require_api_key, _save_state
 from phi.display import _C_BLUE, _C_SAND, _die, console
 from phi.types import PhiApiError
 
@@ -13,7 +13,6 @@ from phi.types import PhiApiError
 def cmd_login(args: argparse.Namespace) -> None:
     key = _require_api_key()
     masked = key[:8] + "…" if len(key) > 8 else key
-    base = _base_url()
 
     try:
         me = _request("GET", "/auth/me")
@@ -32,16 +31,12 @@ def cmd_login(args: argparse.Namespace) -> None:
 
         content = Text()
         content.append("✓ Logged in\n\n", style=f"bold {_C_SAND}")
-        content.append("endpoint  ", style="dim")
-        content.append(f"{base}\n")
         content.append("API key   ", style="dim")
         content.append(f"{masked}\n\n")
         content.append("Identity\n", style="bold")
         for label, key_name in [
-            ("user_id     ", "user_id"),
             ("email       ", "email"),
             ("display_name", "display_name"),
-            ("org_id      ", "org_id"),
             ("org_name    ", "org_name"),
         ]:
             val = me.get(key_name) or "—"
@@ -50,7 +45,7 @@ def cmd_login(args: argparse.Namespace) -> None:
         content.append("\n")
         content.append("Tip: ", style="bold dim")
         content.append(
-            "identity cached to .phi/state.json — no need to export env vars.\n", style="dim"
+            "credentials cached to .phi/state.json — no need to export env vars.\n", style="dim"
         )
         console.print(
             Panel(content, title=f"[{_C_BLUE}]dyno phi[/]", border_style=_C_BLUE, padding=(1, 2))
@@ -69,8 +64,6 @@ def cmd_login(args: argparse.Namespace) -> None:
 
         content = Text()
         content.append("✓ Logged in\n\n", style=f"bold {_C_SAND}")
-        content.append("endpoint  ", style="dim")
-        content.append(f"{base}\n")
         content.append("API key   ", style="dim")
         content.append(f"{masked}\n\n")
         content.append("Note: ", style="bold dim")

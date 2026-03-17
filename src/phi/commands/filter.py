@@ -55,7 +55,7 @@ def cmd_filter(args: argparse.Namespace) -> None:
             "better-calibrated for novel designed binders[/]"
         )
 
-    result = _submit("design_pipeline", params, run_id=None, dataset_id=dataset_id)
+    result = _submit("filter_pipeline", params, run_id=None, dataset_id=dataset_id)
     job_id = _require_key(result, "job_id", "POST /jobs (filter)")
     _save_state({"last_job_id": job_id})
     _print_submission(result)

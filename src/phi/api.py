@@ -48,6 +48,10 @@ def _request(method: str, path: str, body: dict | None = None) -> dict:
         raise PhiApiError(f"HTTP {e.code} — {detail}") from e
     except urllib.error.URLError as e:
         raise PhiApiError(f"Network error — {e.reason}\n  URL: {url}") from e
+    except OSError as e:
+        # Catches TimeoutError, ConnectionResetError, and other socket-level errors
+        # that bubble up through the SSL/HTTP stack without being wrapped by urllib.
+        raise PhiApiError(f"Network error — {e}\n  URL: {url}") from e
 
 
 def _put_file(signed_url: str, data: bytes | Path) -> None:

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-03-17
+
+### Added
+- `phi tutorial` — downloads example PD-L1 binder structures from the API and prints a step-by-step scoring walkthrough
+
+### Fixed
+- GCS internal paths (`gs://...`) no longer shown in status output, research notes, or `phi fetch` results
+- `phi design` / `phi boltzgen` feature-flagged behind `DYNO_ENABLE_DESIGN=1` env var
+- macOS SSL certificate error when downloading tutorial files via signed URLs
+
 ## [0.2.0] - 2026-03-17
 
 ### Added

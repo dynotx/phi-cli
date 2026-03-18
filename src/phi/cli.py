@@ -16,6 +16,7 @@ from phi.commands.models import (
 )
 from phi.commands.research import cmd_notes, cmd_research
 from phi.commands.structure import cmd_fetch
+from phi.commands.tutorial import cmd_tutorial
 from phi.config import _load_state
 from phi.display import _C_BLUE, _die, console
 from phi.parser import build_parser
@@ -23,6 +24,7 @@ from phi.types import PhiApiError
 
 COMMANDS = {
     "login": cmd_login,
+    "tutorial": cmd_tutorial,
     "upload": cmd_upload,
     "ingest-session": cmd_ingest_session,
     "datasets": cmd_datasets,

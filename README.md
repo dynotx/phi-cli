@@ -56,43 +56,34 @@ phi login
 
 ## Quick start
 
-### Single-sequence / single-structure jobs
+### Try the tutorial
+
+The fastest way to get started — downloads five example PD-L1 binder structures
+and walks you through the full pipeline:
 
 ```bash
-# Structure prediction (ESMFold)
-phi folding --fasta sequences.fasta
-
-# Complex structure prediction (AlphaFold2 multimer)
-phi complex_folding --fasta binder_target.fasta
-
-# Sequence design via inverse folding (ProteinMPNN)
-phi inverse_folding --pdb design.pdb --num-sequences 20
+phi tutorial
 ```
 
-### Batch scoring workflow
+This fetches the example files, prints step-by-step instructions, and leaves
+you ready to run `phi filter`.
+
+### Scoring your own structures
 
 ```bash
-# 1. Upload a directory of PDB/CIF files
+# 1. Upload PDB/CIF files
 phi upload ./designs/
 
-# Output:
-#   dataset_id  d7c3a1b2-...
-#   Dashboard:  https://design.dynotx.com/dashboard/datasets/d7c3a1b2-...
-#   Run a job against this dataset:
-#     phi folding          --dataset-id d7c3a1b2-...
-#     phi complex_folding  --dataset-id d7c3a1b2-...
-#     phi inverse_folding  --dataset-id d7c3a1b2-...
-#     phi filter           --dataset-id d7c3a1b2-... --preset default --wait
+# 2. Run the full filter pipeline
+phi filter --preset default --wait
 
-# 2. Run the full filter pipeline (inverse folding → folding → complex folding → score)
-phi filter --dataset-id d7c3a1b2-... --preset default --wait
-
-# 3. Download results (structures, scores CSV, raw score JSONs)
+# 3. View scores and download results
+phi scores
 phi download --out ./results/
 ```
 
-After each command, `phi` prints the active dataset and job IDs and a link to
-the dashboard:
+After each command, `phi` prints the active dataset and a link to the
+dashboard:
 
 ```
 Active: dataset [d7c3a1b2-...] · job [cb4553f5-...]
@@ -105,6 +96,7 @@ Dashboard: https://design.dynotx.com/dashboard/datasets/d7c3a1b2-...
 
 | Command | Alias | Description |
 |---|---|---|
+| `phi tutorial` | — | Download example structures and print a step-by-step walkthrough |
 | `phi login` | — | Verify API key and print identity |
 | `phi upload` | — | Upload PDB/CIF files or a directory |
 | `phi fetch` | — | Download a structure from RCSB PDB or AlphaFold DB, crop, and optionally upload |

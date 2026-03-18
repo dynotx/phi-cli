@@ -272,7 +272,8 @@ def _print_status(s: dict) -> None:
         table.add_column("filename", style=_C_BLUE, no_wrap=True)
         table.add_column("type", style="dim")
         for f in files[:10]:
-            fname = f.get("filename") or f.get("gcs_url", "?")
+            raw = f.get("filename") or f.get("gcs_url", "?")
+            fname = raw.split("/")[-1] if raw.startswith("gs://") else raw
             ftype = f.get("artifact_type", "")
             table.add_row(fname, ftype)
         if len(files) > 10:

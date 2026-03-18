@@ -5,7 +5,7 @@ Submit and monitor computational biology jobs, manage datasets, run structure
 prediction and inverse-folding pipelines, and download results — all from your
 terminal.
 
-**Version:** 0.2.1 · **Package:** `dyno-phi` · **Requires:** Python ≥ 3.9
+**Version:** 0.2.2 · **Package:** `dyno-phi` · **Requires:** Python ≥ 3.9
 
 ---
 

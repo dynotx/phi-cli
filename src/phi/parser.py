@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 
 from phi._version import __version__
@@ -237,6 +239,13 @@ def _add_boltzgen_args(p: argparse.ArgumentParser) -> None:
     )
 
 
+class _FilteredSubParsersAction(argparse._SubParsersAction):
+    """Subparser action that omits choices with help=SUPPRESS from help output."""
+
+    def _get_subactions(self) -> list[argparse.Action]:
+        return [a for a in self._choices_actions if a.help is not argparse.SUPPRESS]
+
+
 def build_parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(
         prog="phi",
@@ -256,6 +265,7 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="S",
         help=f"Seconds between status-poll requests (default: {POLL_INTERVAL})",
     )
+    root.register("action", "parsers", _FilteredSubParsersAction)
     sub = root.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser(
@@ -655,12 +665,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", metavar="FILE", help="Save scores CSV to file")
     p.add_argument("--json", action="store_true", help="Output raw JSON")
 
-    # Hide internal/unreleased commands from help and usage without breaking dispatch.
+    # Hide internal/unreleased commands from the usage line.
     _hidden_cmds = {"rfdiffusion3", "design", "boltzgen"}
     sub.metavar = "{" + ",".join(c for c in sub.choices if c not in _hidden_cmds) + "}"
-    _orig_get_subactions = sub._get_subactions
-    sub._get_subactions = lambda: [
-        a for a in _orig_get_subactions() if a.help is not argparse.SUPPRESS
-    ]
 
     return root

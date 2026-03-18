@@ -63,8 +63,6 @@ phi research \
   --dataset-id <ID>
 
 # Stream results live
-phi research --question "..." --stream
-
 # Append notes to a local file and cloud storage
 phi research --question "..." --notes-file ./research.md --dataset-id <ID>
 

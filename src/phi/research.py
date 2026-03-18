@@ -150,13 +150,14 @@ def _stream_research(
     max_turns: int = 15,
     notes_file: Path | None = None,
     dataset_id: str | None = None,
+    context: str | None = None,
 ) -> None:
-    url = f"{base_url.rstrip('/')}/research/stream?" + urllib.parse.urlencode(
-        {"question": question, "max_turns": max_turns}
-    )
+    params: dict = {"question": question, "max_turns": max_turns}
+    if context:
+        params["context"] = context
+    url = f"{base_url.rstrip('/')}/research/stream?" + urllib.parse.urlencode(params)
 
-    console.print(f"\n[{_C_BLUE}]Connecting to research stream…[/]")
-    console.print(f"[dim]{url}[/]\n")
+    console.print(f"\n[{_C_BLUE}]Connecting to research stream…[/]\n")
 
     state = _ResearchStreamState()
     req = urllib.request.Request(url, headers={"Accept": "text/event-stream"})

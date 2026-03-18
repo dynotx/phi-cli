@@ -3,6 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from phi.commands.research import _is_error_report
 from phi.research import (
     _build_research_section,
     _dispatch_sse_event,
@@ -83,6 +84,31 @@ def test_build_research_section_includes_citations() -> None:
     section = _build_research_section("query", "report", json.dumps(citations))
     assert "Paper A" in section
     assert "Sources (2)" in section
+
+
+def test_is_error_report_detects_research_failed() -> None:
+    report = "# Research Failed\n\nError: Command failed with exit code 1"
+    assert _is_error_report(report) is True
+
+
+def test_is_error_report_detects_error_header() -> None:
+    assert _is_error_report("# Error\n\nSomething went wrong") is True
+
+
+def test_is_error_report_detects_bare_error_prefix() -> None:
+    assert _is_error_report("Error: Command failed with exit code 1") is True
+
+
+def test_is_error_report_passes_valid_report() -> None:
+    assert _is_error_report("# AAV Biology\n\nAAVs are...") is False
+
+
+def test_is_error_report_passes_empty() -> None:
+    assert _is_error_report("") is False
+
+
+def test_is_error_report_handles_leading_whitespace() -> None:
+    assert _is_error_report("  # Research Failed\n\nError") is True  # strip() normalises whitespace
 
 
 def test_build_research_section_handles_invalid_citations() -> None:

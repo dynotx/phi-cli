@@ -679,7 +679,6 @@ phi research --question QUESTION [options]
 | `--dataset-id ID` | — | Associate notes with a dataset and sync to cloud storage |
 | `--notes-file FILE` | `./research.md` | Local append-only notes file |
 | `--no-save` | — | Skip saving the report to the local notes file |
-| `--stream` | — | Stream results live via SSE (skips job tracking) |
 
 **Examples:**
 ```bash

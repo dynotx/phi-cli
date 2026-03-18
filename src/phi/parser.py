@@ -44,6 +44,8 @@ def _add_fasta_args(p: argparse.ArgumentParser) -> None:
     g.add_argument("--fasta-str", metavar="FASTA", help="FASTA content as a string (for scripting)")
     g.add_argument(
         "--dataset-id",
+        "--dataset_id",
+        dest="dataset_id",
         metavar="DATASET_ID",
         help="Pre-ingested dataset ID (for batch runs of 100–50,000 files)",
     )
@@ -55,6 +57,8 @@ def _add_pdb_args(p: argparse.ArgumentParser) -> None:
     g.add_argument("--pdb-gcs", metavar="URI", help="Cloud storage URI to PDB (gs://…)")
     g.add_argument(
         "--dataset-id",
+        "--dataset_id",
+        dest="dataset_id",
         metavar="DATASET_ID",
         help="Pre-ingested dataset ID (for batch runs of 100–50,000 files)",
     )
@@ -427,14 +431,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser(
         "rfdiffusion3",
         aliases=["design"],
-        help="All-atom backbone generation: binder design, de novo, motif scaffolding (2–5 min/design)",
+        help=argparse.SUPPRESS,
     )
     _add_rfdiffusion3_args(p)
     _add_job_args(p)
 
     p = sub.add_parser(
         "boltzgen",
-        help="All-atom generative design from a YAML spec — proteins, peptides, small molecules (10–20 min)",
+        help=argparse.SUPPRESS,
     )
     _add_boltzgen_args(p)
     _add_job_args(p)
@@ -481,7 +485,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--dataset-id",
+        "--dataset_id",
         metavar="ID",
+        dest="dataset_id",
         help="Associate notes with a dataset and sync to cloud storage",
     )
     p.add_argument(
@@ -494,17 +500,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-save", action="store_true", help="Skip saving the report to the local notes file"
     )
     p.add_argument(
-        "--stream",
-        action="store_true",
-        help="Stream results live from Modal SSE endpoint (skips job tracking)",
-    )
-    p.add_argument(
-        "--stream-url",
+        "--url",
         metavar="URL",
         default="https://dynotx--research-agent-streaming-fastapi-app.modal.run",
-        help="Override the SSE base URL",
+        help="Override the SSE streaming base URL",
     )
-    _add_job_args(p)
+    p.add_argument("--out", metavar="DIR", help="Save report and citations to DIR")
 
     p = sub.add_parser("notes", help="View accumulated research notes for a dataset")
     p.add_argument(
@@ -559,6 +560,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--dataset-id",
+        "--dataset_id",
+        dest="dataset_id",
         default=None,
         metavar="ID",
         help="Dataset of PDB/CIF designs (default: cached from last upload or `phi use`)",
@@ -651,5 +654,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--out", metavar="FILE", help="Save scores CSV to file")
     p.add_argument("--json", action="store_true", help="Output raw JSON")
+
+    # Hide internal/unreleased commands from help and usage without breaking dispatch.
+    _hidden_cmds = {"rfdiffusion3", "design", "boltzgen"}
+    sub.metavar = "{" + ",".join(c for c in sub.choices if c not in _hidden_cmds) + "}"
+    _orig_get_subactions = sub._get_subactions
+    sub._get_subactions = lambda: [
+        a for a in _orig_get_subactions() if a.help is not argparse.SUPPRESS
+    ]
 
     return root

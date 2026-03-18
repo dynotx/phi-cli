@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-03-17
+
+### Added
+- `phi research` now accepts `--dataset_id` (underscore) as an alias for `--dataset-id` — consistent with all other commands
+- `phi notes` command implemented: fetches and displays accumulated research notes for a dataset
+
+### Changed
+- `phi design` (`rfdiffusion3`) and `phi boltzgen` no longer appear in `phi --help` or usage line — they remain accessible internally via `DYNO_ENABLE_DESIGN=1`
+
+### Fixed
+- Missing imports (`_request`, `PhiApiError`, `Panel`, `Markdown`, `_C_BLUE`, `_C_SAND`, `json`) in `phi notes` command
+- mypy `Cannot assign to a method` error replaced with a proper `_FilteredSubParsersAction` subclass
+
 ## [0.2.2] - 2026-03-17
 
 ### Added

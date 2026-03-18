@@ -153,14 +153,12 @@ def _fetch_and_upload(
         ("Source  ", source_url),
         ("File    ", str(out_path)),
         ("Dataset ", dataset_id),
-        ("GCS URI ", gcs_uri),
     ]:
         console.print(f"  [bold]{label}[/bold] {value}")
     console.print()
     console.print("  [dim]Next steps:[/dim]")
-    console.print(
-        f"  [dim]  phi design --target-pdb-gcs {gcs_uri} --hotspots <A45,A67> --num-designs 50[/dim]"
-    )
+    console.print(f"  [dim]  phi upload {out_path}[/dim]")
+    console.print("  [dim]  phi filter --preset default --wait[/dim]")
     console.rule()
 
 

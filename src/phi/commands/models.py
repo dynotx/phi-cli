@@ -1,10 +1,20 @@
+from __future__ import annotations
+
 import argparse
+import os
 from pathlib import Path
 
 from phi.api import _require_key, _submit
 from phi.display import _die, _print_status, _print_submission, console
 from phi.download import _download_job, _read_fasta
 from phi.polling import _poll
+
+_DESIGN_ENABLED = os.environ.get("DYNO_ENABLE_DESIGN", "").lower() in ("1", "true", "yes")
+
+
+def _require_design_flag() -> None:
+    if not _DESIGN_ENABLED:
+        _die("This command is not yet available.")
 
 
 def _run_model_job(job_type: str, params: dict, args: argparse.Namespace) -> None:
@@ -92,6 +102,7 @@ def cmd_boltz(args: argparse.Namespace) -> None:
 
 
 def cmd_rfdiffusion3(args: argparse.Namespace) -> None:
+    _require_design_flag()
     params: dict = {
         "num_designs": args.num_designs,
         "inference_steps": args.steps,
@@ -129,6 +140,7 @@ def cmd_rfdiffusion3(args: argparse.Namespace) -> None:
 
 
 def cmd_boltzgen(args: argparse.Namespace) -> None:
+    _require_design_flag()
     params: dict = {
         "protocol": args.protocol,
         "num_designs": args.num_designs,

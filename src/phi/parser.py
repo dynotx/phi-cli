@@ -4,14 +4,15 @@ from phi._version import __version__
 from phi.config import _FILTER_PRESETS, POLL_INTERVAL
 
 _CLI_EPILOG = """\
+Quick start:
+  phi tutorial               # download example structures + print step-by-step guide
+  phi filter --preset default --wait
+  phi scores
+  phi download --out ./results
+
 Fetch and prepare target structures:
   phi fetch --pdb 4ZQK --chain A --residues 56-290 --out target.pdb
   phi fetch --uniprot Q9NZQ7 --trim-low-confidence 70 --upload
-
-Design (backbone generation):
-  phi design      --target-pdb target.pdb --hotspots A45,A67 --num-designs 50
-  phi design      --length 80 --num-designs 20
-  phi boltzgen    --yaml design.yaml --protocol protein-anything --num-designs 10
 
 Validation (fold + score):
   phi esmfold     --fasta sequences.fasta
@@ -20,10 +21,10 @@ Validation (fold + score):
   phi esm2        --fasta sequences.fasta
   phi boltz       --fasta complex.fasta
 
-Batch filter pipeline (100-50,000 designs):
-  phi upload --dir ./designs/ --file-type pdb
-  phi filter --dataset-id <id> --preset default --wait
-  phi download   --out ./results
+Batch filter pipeline:
+  phi upload ./designs/
+  phi filter --preset default --wait
+  phi download --out ./results
 
 Dataset management:
   phi datasets               # list your datasets
@@ -252,6 +253,17 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Seconds between status-poll requests (default: {POLL_INTERVAL})",
     )
     sub = root.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser(
+        "tutorial",
+        help="Download example structures and print a step-by-step scoring walkthrough",
+    )
+    p.add_argument(
+        "--out",
+        metavar="DIR",
+        default="examples",
+        help="Directory to download example files into (default: ./examples)",
+    )
 
     p = sub.add_parser("login", help="Verify API key and print connection + identity details")
     p.add_argument("--json", action="store_true")

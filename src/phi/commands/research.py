@@ -111,8 +111,8 @@ def cmd_notes(args: argparse.Namespace) -> None:
         return
 
     content: str = data.get("content") or ""
-    gcs_url: str | None = data.get("gcs_url")
-    gcs_uri: str | None = data.get("gcs_uri")
+    data.get("gcs_url")
+    data.get("gcs_uri")
 
     if args.out:
         out = Path(args.out)
@@ -124,8 +124,6 @@ def cmd_notes(args: argparse.Namespace) -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(content, encoding="utf-8")
         console.print(f"[{_C_SAND}]Notes saved[/] → {dest}")
-        if gcs_url:
-            console.print(f"[dim]Download URL:[/] {gcs_url}")
         return
 
     if args.json:
@@ -141,5 +139,3 @@ def cmd_notes(args: argparse.Namespace) -> None:
             padding=(1, 2),
         )
     )
-    if gcs_uri:
-        console.print(f"[dim]Storage URI:[/] {gcs_uri}")
